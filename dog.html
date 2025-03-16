@@ -596,14 +596,10 @@
                     // Minimal wobble - almost flat to the ground (max 2 degrees)
                     frisbeeWobble = Math.sin(frisbeeTimer * 4) * (1 - groundProximityFactor) * 2;
                     
-                    // Update frisbee position and rotation
+                    // Update frisbee position with zero rotation on all axes
                     frisbee.style.left = `${frisbeeX - 20}px`;
                     frisbee.style.top = `${frisbeeY - 5}px`;
-                    
-                    // Keep frisbee perfectly level with ground (only spin around Z-axis)
-                    // No X rotation (no front/back tilt) and minimal Y rotation
-                    // This is a visual adjustment - the physics still calculate lift
-                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(0deg) rotateY(0deg)`;
+                    frisbee.style.transform = `rotate(0deg) rotateX(0deg) rotateY(0deg)`;
                     
                     // Check if frisbee hits ground
                     if (frisbeeY > window.innerHeight - window.innerHeight * 0.2 - 15) {
