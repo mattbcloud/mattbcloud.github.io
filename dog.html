@@ -33,6 +33,46 @@
             background-color: #7CFC00;
         }
         
+        /* Tree styling */
+        #tree {
+            position: absolute;
+            z-index: 2;
+            bottom: 20vh; /* Position at ground level */
+            right: 15%; /* Position on the right side */
+        }
+        
+        #tree-trunk {
+            width: 20px;
+            height: 80px;
+            background-color: #8B4513;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #tree-top {
+            width: 120px;
+            height: 160px;
+            background-color: #228B22;
+            border-radius: 60px;
+            position: absolute;
+            bottom: 65px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #tree-top2 {
+            width: 80px;
+            height: 100px;
+            background-color: #228B22;
+            border-radius: 40px;
+            position: absolute;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
         #dog {
             position: absolute;
             width: 50px;
@@ -310,6 +350,13 @@
         </div>
         
         <div id="ground"></div>
+        
+        <!-- Add tree to background -->
+        <div id="tree">
+            <div id="tree-trunk"></div>
+            <div id="tree-top"></div>
+            <div id="tree-top2"></div>
+        </div>
         
         <div id="dog">
             <div id="dog-head"></div>
