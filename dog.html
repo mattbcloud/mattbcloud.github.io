@@ -724,12 +724,12 @@
                         
                         // Adjust throw power based on dog distance
                         const distanceFactor = Math.min(1, dogDistance / maxDistance);
-                        // Increased base power and distance bonus for longer flights
-                        const throwPower = 12 + Math.random() * 5 + (distanceFactor * 8); 
+                        // Slightly reduced power from previous adjustment
+                        const throwPower = 10 + Math.random() * 4 + (distanceFactor * 7); 
                         
-                        // Adjust throw angle based on distance (higher angle for longer air time)
-                        // Higher angle for all throws to achieve more height
-                        const throwAngle = 20 + Math.random() * 15 - (distanceFactor * 5);
+                        // Adjust throw angle based on distance
+                        // Slightly higher angle for moderate height
+                        const throwAngle = 18 + Math.random() * 12 - (distanceFactor * 5);
                         
                         frisbeeVelocityX = throwPower * Math.cos(throwAngle * Math.PI / 180);
                         frisbeeVelocityY = -throwPower * Math.sin(throwAngle * Math.PI / 180);
@@ -791,8 +791,8 @@
                     const height = window.innerHeight - window.innerHeight * 0.2 - frisbeeY;
                     const groundProximityFactor = Math.max(0, Math.min(1, height / 250)); // Increased height range (from 200 to 250)
                     
-                    // Reduced air resistance for longer horizontal travel
-                    frisbeeVelocityX *= (0.997 - (1 - groundProximityFactor) * 0.01); // Less drag (from 0.995 to 0.997)
+                    // Reduced air resistance but not as extreme as before
+                    frisbeeVelocityX *= (0.996 - (1 - groundProximityFactor) * 0.015);
                     
                     // Update position
                     frisbeeX += frisbeeVelocityX * 60 * dt;
