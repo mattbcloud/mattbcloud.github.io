@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Plays Catch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background-color: #87CEEB;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 20vh;
+            background-color: #7CFC00;
+        }
+        
+        #dog {
+            position: absolute;
+            width: 50px;
+            height: 40px;
+            background-color: #8B4513;
+            border-radius: 10px;
+            bottom: 20vh;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        
+        #dog-head {
+            position: absolute;
+            width: 25px;
+            height: 20px;
+            background-color: #8B4513;
+            border-radius: 50%;
+            top: -15px;
+            left: 0;
+        }
+        
+        #dog-ear1, #dog-ear2 {
+            position: absolute;
+            width: 15px;
+            height: 20px;
+            background-color: #8B4513;
+            border-radius: 50%;
+            top: -15px;
+        }
+        
+        #dog-ear1 {
+            left: -5px;
+        }
+        
+        #dog-ear2 {
+            right: -5px;
+        }
+        
+        #dog-tail {
+            position: absolute;
+            width: 20px;
+            height: 8px;
+            background-color: #8B4513;
+            border-radius: 5px;
+            right: -15px;
+            top: 10px;
+        }
+        
+        #frisbee {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: orangered;
+            border-radius: 50%;
+            border: 3px solid #FF4500;
+            top: -100px;
+            left: -100px;
+            z-index: 5;
+            transform: rotate(0deg);
+        }
+        
+        #man {
+            position: absolute;
+            bottom: 20vh;
+            left: 20%;
+            z-index: 5;
+        }
+        
+        #man-head {
+            width: 20px;
+            height: 20px;
+            background-color: #FFD700;
+            border-radius: 50%;
+            position: absolute;
+            top: -80px;
+        }
+        
+        #man-body {
+            width: 5px;
+            height: 50px;
+            background-color: #000;
+            position: absolute;
+            top: -60px;
+            left: 8px;
+        }
+        
+        #man-arm1, #man-arm2 {
+            width: 30px;
+            height: 5px;
+            background-color: #000;
+            position: absolute;
+            top: -45px;
+            left: 13px;
+            transform-origin: 0 50%;
+            transform: rotate(0deg);
+        }
+        
+        #man-arm2 {
+            transform: rotate(-45deg);
+        }
+        
+        #man-leg1, #man-leg2 {
+            width: 5px;
+            height: 30px;
+            background-color: #000;
+            position: absolute;
+            top: -10px;
+        }
+        
+        #man-leg1 {
+            left: 0;
+            transform: rotate(-15deg);
+        }
+        
+        #man-leg2 {
+            left: 15px;
+            transform: rotate(15deg);
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            z-index: 100;
+        }
+        
+        .screen h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .screen p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .button:hover {
+            background-color: #45a049;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        #game-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 20;
+        }
+        
+        .bark-bubble {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            padding: 5px;
+            opacity: 1;
+            transition: opacity 0.5s;
+            z-index: 15;
+        }
+        
+        .rain-drop {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background-color: #1E90FF;
+            z-index: 3;
+        }
+        
+        #high-scores {
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            width: 80%;
+        }
+        
+        #high-scores-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        #high-scores-table th, #high-scores-table td {
+            padding: 5px;
+            border: 1px solid white;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <h1>Dog Plays Catch</h1>
+            <p>Control the dog with your mouse or touch to catch the frisbee.<br>
+            Click/tap to bark and make the man throw the frisbee.<br>
+            Don't let the frisbee hit the ground!</p>
+            <button id="start-button" class="button">Start Game</button>
+            <div id="high-scores">
+                <h2>High Scores</h2>
+                <table id="high-scores-table">
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Score</th>
+                            <th>Wind</th>
+                            <th>Rain</th>
+                        </tr>
+                    </thead>
+                    <tbody id="high-scores-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="game-over-screen" class="screen hidden">
+            <h1>Game Over!</h1>
+            <p id="game-over-stats">You reached level: 1<br>Your score: 0</p>
+            <button id="restart-button" class="button">Play Again</button>
+            <button id="home-button-1" class="button">Home</button>
+        </div>
+        
+        <div id="level-complete-screen" class="screen hidden">
+            <h1>Level Complete!</h1>
+            <p id="level-stats">Level: 1<br>Score: 0</p>
+            <button id="next-level-button" class="button">Next Level</button>
+            <button id="home-button-2" class="button">Home</button>
+        </div>
+        
+        <div id="game-info">
+            <p>Level: <span id="level-display">1</span></p>
+            <p>Score: <span id="score-display">0</span></p>
+            <p>Wind: <span id="wind-display">5%</span></p>
+            <p>Rain: <span id="rain-display">0%</span></p>
+            <p>Timer: <span id="timer-display">0.0</span>s</p>
+        </div>
+        
+        <div id="ground"></div>
+        
+        <div id="dog">
+            <div id="dog-head"></div>
+            <div id="dog-ear1"></div>
+            <div id="dog-ear2"></div>
+            <div id="dog-tail"></div>
+        </div>
+        
+        <div id="frisbee"></div>
+        
+        <div id="man">
+            <div id="man-head"></div>
+            <div id="man-body"></div>
+            <div id="man-arm1"></div>
+            <div id="man-arm2"></div>
+            <div id="man-leg1"></div>
+            <div id="man-leg2"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let currentLevel = 1;
+        let score = 0;
+        let windPercent = 5;
+        let rainPercent = 0;
+        let gameActive = false;
+        let frisbeeActive = false;
+        let frisbeeThrown = false;
+        let frisbeeTimer = 0;
+        let frisbeeX = 0;
+        let frisbeeY = 0;
+        let frisbeeVelocityX = 0;
+        let frisbeeVelocityY = 0;
+        let frisbeeRotation = 0;
+        let frisbeeWobble = 0;
+        let dogX = window.innerWidth / 2;
+        let dogY = window.innerHeight - window.innerHeight * 0.2;
+        let manX = window.innerWidth * 0.2;
+        let raindrops = [];
+        let lastFrameTime = 0;
+        let deltaTime = 0;
+        let barking = false;
+        let barkCooldown = 0;
+        let canThrow = true;
+        
+        // DOM elements
+        const gameContainer = document.getElementById('game-container');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const levelCompleteScreen = document.getElementById('level-complete-screen');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const nextLevelButton = document.getElementById('next-level-button');
+        const homeButton1 = document.getElementById('home-button-1');
+        const homeButton2 = document.getElementById('home-button-2');
+        const levelDisplay = document.getElementById('level-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const windDisplay = document.getElementById('wind-display');
+        const rainDisplay = document.getElementById('rain-display');
+        const timerDisplay = document.getElementById('timer-display');
+        const gameOverStats = document.getElementById('game-over-stats');
+        const levelStats = document.getElementById('level-stats');
+        const highScoresBody = document.getElementById('high-scores-body');
+        const ground = document.getElementById('ground');
+        const dog = document.getElementById('dog');
+        const frisbee = document.getElementById('frisbee');
+        const man = document.getElementById('man');
+        const manArm1 = document.getElementById('man-arm1');
+        const manArm2 = document.getElementById('man-arm2');
+        
+        // Initialize game
+        function initGame() {
+            // Set position of man
+            man.style.left = `${manX}px`;
+            
+            // Load game progress from localStorage
+            loadGameProgress();
+            
+            // Display high scores
+            displayHighScores();
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', restartGame);
+            nextLevelButton.addEventListener('click', nextLevel);
+            homeButton1.addEventListener('click', goHome);
+            homeButton2.addEventListener('click', goHome);
+            
+            // Mouse/touch move events for dog control
+            document.addEventListener('mousemove', moveDog);
+            document.addEventListener('touchmove', moveDogTouch);
+            
+            // Click/tap events for barking
+            document.addEventListener('mousedown', bark);
+            document.addEventListener('touchstart', bark);
+        }
+        
+        // Movement handlers
+        function moveDog(e) {
+            if (gameActive) {
+                dogX = e.clientX;
+                
+                // Keep dog within bounds
+                if (dogX < 25) dogX = 25;
+                if (dogX > window.innerWidth - 25) dogX = window.innerWidth - 25;
+                
+                dog.style.left = `${dogX}px`;
+            }
+        }
+        
+        function moveDogTouch(e) {
+            if (gameActive) {
+                e.preventDefault();
+                dogX = e.touches[0].clientX;
+                
+                // Keep dog within bounds
+                if (dogX < 25) dogX = 25;
+                if (dogX > window.innerWidth - 25) dogX = window.innerWidth - 25;
+                
+                dog.style.left = `${dogX}px`;
+            }
+        }
+        
+        // Bark function
+        function bark(e) {
+            if (gameActive && !barking && barkCooldown <= 0) {
+                barking = true;
+                barkCooldown = 1; // Cooldown in seconds
+                
+                // Create bark bubble
+                const bubble = document.createElement('div');
+                bubble.className = 'bark-bubble';
+                bubble.textContent = 'WOOF!';
+                bubble.style.left = `${parseInt(dog.style.left) + 25}px`;
+                bubble.style.top = `${dogY - 60}px`;
+                gameContainer.appendChild(bubble);
+                
+                // Fade out and remove bark bubble
+                setTimeout(() => {
+                    bubble.style.opacity = '0';
+                    setTimeout(() => {
+                        gameContainer.removeChild(bubble);
+                    }, 500);
+                }, 500);
+                
+                // Trigger frisbee throw if man can throw
+                if (canThrow && !frisbeeActive) {
+                    throwFrisbee();
+                }
+                
+                // Clear barking state
+                setTimeout(() => {
+                    barking = false;
+                }, 500);
+            }
+        }
+        
+        // Throw frisbee
+        function throwFrisbee() {
+            if (!frisbeeActive) {
+                frisbeeActive = true;
+                frisbeeThrown = false;
+                frisbeeTimer = 0;
+                
+                // Set initial position
+                frisbeeX = manX + 30;
+                frisbeeY = window.innerHeight - window.innerHeight * 0.2 - 50;
+                
+                // Animation for throwing
+                let throwAnimFrame = 0;
+                let throwAnim = setInterval(() => {
+                    throwAnimFrame++;
+                    
+                    // Animate man's arm for throwing
+                    manArm2.style.transform = `rotate(${-45 + throwAnimFrame * 10}deg)`;
+                    
+                    if (throwAnimFrame >= 9) {
+                        clearInterval(throwAnim);
+                        
+                        // Set velocity
+                        const throwPower = 5 + Math.random() * 3;
+                        const throwAngle = 30 + Math.random() * 20;
+                        frisbeeVelocityX = throwPower * Math.cos(throwAngle * Math.PI / 180);
+                        frisbeeVelocityY = -throwPower * Math.sin(throwAngle * Math.PI / 180);
+                        
+                        frisbeeThrown = true;
+                        
+                        // Reset arm after throw with delay
+                        setTimeout(() => {
+                            manArm2.style.transform = 'rotate(-45deg)';
+                            canThrow = true;
+                        }, 500);
+                    }
+                }, 30);
+                
+                canThrow = false;
+            }
+        }
+        
+        // Update frisbee position and physics
+        function updateFrisbee(dt) {
+            if (frisbeeActive) {
+                frisbeeTimer += dt;
+                
+                if (frisbeeThrown) {
+                    // Apply wind effect
+                    const windEffect = (windPercent / 100) * 3 * (Math.sin(frisbeeTimer * 3) + 0.5);
+                    
+                    // Apply rain effect (makes frisbee heavier/faster)
+                    const rainEffect = (rainPercent / 100) * 0.5;
+                    
+                    // Update velocity
+                    frisbeeVelocityX += windEffect * dt;
+                    frisbeeVelocityY += (9.8 * (0.8 + rainEffect)) * dt; // Gravity with rain effect
+                    
+                    // Slowdown as frisbee gets closer to ground
+                    const height = window.innerHeight - window.innerHeight * 0.2 - frisbeeY;
+                    const groundProximityFactor = Math.max(0, Math.min(1, height / 200));
+                    
+                    // Air resistance
+                    frisbeeVelocityX *= (0.99 - (1 - groundProximityFactor) * 0.03);
+                    
+                    // Update position
+                    frisbeeX += frisbeeVelocityX * 60 * dt;
+                    frisbeeY += frisbeeVelocityY * 60 * dt;
+                    
+                    // Update rotation and wobble
+                    frisbeeRotation += (frisbeeVelocityX * 15) * dt;
+                    frisbeeWobble = Math.sin(frisbeeTimer * 8) * (1 - groundProximityFactor) * 15;
+                    
+                    // Update frisbee position and rotation
+                    frisbee.style.left = `${frisbeeX - 15}px`;
+                    frisbee.style.top = `${frisbeeY - 15}px`;
+                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${frisbeeWobble}deg)`;
+                    
+                    // Check if frisbee hits ground
+                    if (frisbeeY > window.innerHeight - window.innerHeight * 0.2 - 15) {
+                        gameOver();
+                    }
+                    
+                    // Check if dog catches frisbee
+                    const dogLeft = dogX - 25;
+                    const dogRight = dogX + 25;
+                    const dogTop = dogY - 40;
+                    
+                    if (frisbeeX > dogLeft && frisbeeX < dogRight && 
+                        frisbeeY > dogTop && frisbeeY < dogY) {
+                        catchFrisbee();
+                    }
+                }
+                
+                // Update timer display
+                timerDisplay.textContent = frisbeeTimer.toFixed(1);
+            }
+        }
+        
+        // Catch frisbee function
+        function catchFrisbee() {
+            score += 100 + Math.floor(1000 / (frisbeeTimer + 1));
+            scoreDisplay.textContent = score;
+            
+            // Reset frisbee
+            frisbeeActive = false;
+            frisbee.style.left = '-100px';
+            frisbee.style.top = '-100px';
+            
+            // Level complete
+            levelComplete();
+        }
+        
+        // Create raindrops
+        function createRaindrops() {
+            // Create new raindrops based on rain percent
+            const maxRaindrops = Math.floor(rainPercent * 2);
+            const newDropsCount = maxRaindrops - raindrops.length;
+            
+            for (let i = 0; i < newDropsCount; i++) {
+                if (Math.random() < rainPercent / 100) {
+                    const raindrop = document.createElement('div');
+                    raindrop.className = 'rain-drop';
+                    raindrop.style.left = `${Math.random() * window.innerWidth}px`;
+                    raindrop.style.top = `${Math.random() * window.innerHeight * 0.3}px`;
+                    raindrop.speedY = 5 + Math.random() * 5;
+                    raindrop.speedX = (windPercent / 100) * 3 * (Math.random() - 0.3);
+                    
+                    gameContainer.appendChild(raindrop);
+                    raindrops.push(raindrop);
+                }
+            }
+        }
+        
+        // Update raindrops position
+        function updateRaindrops(dt) {
+            for (let i = raindrops.length - 1; i >= 0; i--) {
+                const drop = raindrops[i];
+                let top = parseFloat(drop.style.top);
+                let left = parseFloat(drop.style.left);
+                
+                top += drop.speedY * dt * 60;
+                left += drop.speedX * dt * 60;
+                
+                drop.style.top = `${top}px`;
+                drop.style.left = `${left}px`;
+                
+                // Remove raindrops that hit the ground
+                if (top > window.innerHeight - window.innerHeight * 0.2) {
+                    gameContainer.removeChild(drop);
+                    raindrops.splice(i, 1);
+                }
+            }
+        }
+        
+        // Game loop
+        function gameLoop(timestamp) {
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            
+            // Calculate delta time in seconds
+            deltaTime = (timestamp - lastFrameTime) / 1000;
+            lastFrameTime = timestamp;
+            
+            // Limit delta time to prevent large jumps
+            if (deltaTime > 0.1) deltaTime = 0.1;
+            
+            if (gameActive) {
+                // Update cooldowns
+                if (barkCooldown > 0) {
+                    barkCooldown -= deltaTime;
+                }
+                
+                // Update frisbee physics
+                updateFrisbee(deltaTime);
+                
+                // Create and update raindrops
+                if (rainPercent > 0) {
+                    createRaindrops();
+                    updateRaindrops(deltaTime);
+                }
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start game function
+        function startGame() {
+            gameActive = true;
+            frisbeeActive = false;
+            startScreen.classList.add('hidden');
+            
+            // Update displays
+            updateGameInfo();
+            
+            // Start game loop if it's not already running
+            if (!lastFrameTime) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Restart game function
+        function restartGame() {
+            currentLevel = 1;
+            score = 0;
+            windPercent = 5;
+            rainPercent = 0;
+            
+            // Clear raindrops
+            clearRaindrops();
+            
+            // Reset frisbee
+            frisbeeActive = false;
+            frisbee.style.left = '-100px';
+            frisbee.style.top = '-100px';
+            
+            // Update displays
+            updateGameInfo();
+            
+            // Hide game over screen
+            gameOverScreen.classList.add('hidden');
+            
+            // Start game
+            gameActive = true;
+        }
+        
+        // Next level function
+        function nextLevel() {
+            currentLevel++;
+            
+            // Increase difficulty
+            windPercent = 5 * currentLevel;
+            
+            if (currentLevel > 3) {
+                rainPercent = 5 * (currentLevel - 3);
+            }
+            
+            // Clear raindrops
+            clearRaindrops();
+            
+            // Reset frisbee
+            frisbeeActive = false;
+            frisbee.style.left = '-100px';
+            frisbee.style.top = '-100px';
+            
+            // Update displays
+            updateGameInfo();
+            
+            // Hide level complete screen
+            levelCompleteScreen.classList.add('hidden');
+            
+            // Start game
+            gameActive = true;
+            
+            // Save game progress
+            saveGameProgress();
+        }
+        
+        // Go home function
+        function goHome() {
+            // Hide all screens
+            gameOverScreen.classList.add('hidden');
+            levelCompleteScreen.classList.add('hidden');
+            
+            // Show start screen
+            startScreen.classList.remove('hidden');
+            
+            // Reset game state
+            gameActive = false;
+            
+            // Clear raindrops
+            clearRaindrops();
+            
+            // Update high scores
+            displayHighScores();
+        }
+        
+        // Game over function
+        function gameOver() {
+            gameActive = false;
+            frisbeeActive = false;
+            
+            // Update game over stats
+            gameOverStats.innerHTML = `You reached level: ${currentLevel}<br>Your score: ${score}`;
+            
+            // Show game over screen
+            gameOverScreen.classList.remove('hidden');
+            
+            // Save high score
+            saveHighScore();
+        }
+        
+        // Level complete function
+        function levelComplete() {
+            gameActive = false;
+            
+            // Update level stats
+            levelStats.innerHTML = `Level: ${currentLevel}<br>Score: ${score}`;
+            
+            // Show level complete screen
+            levelCompleteScreen.classList.remove('hidden');
+            
+            // Save game progress
+            saveGameProgress();
+        }
+        
+        // Clear raindrops function
+        function clearRaindrops() {
+            for (const drop of raindrops) {
+                gameContainer.removeChild(drop);
+            }
+            raindrops = [];
+        }
+        
+        // Update game info displays
+        function updateGameInfo() {
+            levelDisplay.textContent = currentLevel;
+            scoreDisplay.textContent = score;
+            windDisplay.textContent = `${windPercent}%`;
+            rainDisplay.textContent = `${rainPercent}%`;
+            timerDisplay.textContent = '0.0';
+        }
+        
+        // Save game progress
+        function saveGameProgress() {
+            const gameProgress = {
+                level: currentLevel,
+                score: score,
+                wind: windPercent,
+                rain: rainPercent
+            };
+            
+            localStorage.setItem('dogCatchProgress', JSON.stringify(gameProgress));
+        }
+        
+        // Load game progress
+        function loadGameProgress() {
+            const savedProgress = localStorage.getItem('dogCatchProgress');
+            
+            if (savedProgress) {
+                const progress = JSON.parse(savedProgress);
+                
+                currentLevel = progress.level;
+                score = progress.score;
+                windPercent = progress.wind;
+                rainPercent = progress.rain;
+                
+                updateGameInfo();
+            }
+        }
+        
+        // Save high score
+        function saveHighScore() {
+            let highScores = localStorage.getItem('dogCatchHighScores');
+            
+            if (!highScores) {
+                highScores = [];
+            } else {
+                highScores = JSON.parse(highScores);
+            }
+            
+            highScores.push({
+                level: currentLevel,
+                score: score,
+                wind: windPercent,
+                rain: rainPercent,
+                date: new Date().toLocaleDateString()
+            });
+            
+            // Sort by score (highest first)
+            highScores.sort((a, b) => b.score - a.score);
+            
+            // Limit to top 10
+            if (highScores.length > 10) {
+                highScores = highScores.slice(0, 10);
+            }
+            
+            localStorage.setItem('dogCatchHighScores', JSON.stringify(highScores));
+        }
+        
+        // Display high scores
+        function displayHighScores() {
+            let highScores = localStorage.getItem('dogCatchHighScores');
+            
+            // Clear current high scores
+            highScoresBody.innerHTML = '';
+            
+            if (highScores) {
+                highScores = JSON.parse(highScores);
+                
+                for (const score of highScores) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${score.level}</td>
+                        <td>${score.score}</td>
+                        <td>${score.wind}%</td>
+                        <td>${score.rain}%</td>
+                    `;
+                    highScoresBody.appendChild(row);
+                }
+            }
+        }
+        
+        // Initialize the game when window loads
+        window.onload = initGame;
+    </script>
+</body>
+</html>
