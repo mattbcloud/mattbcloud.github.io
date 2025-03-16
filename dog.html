@@ -528,7 +528,8 @@
                         const throwPower = 8 + Math.random() * 4 + (distanceFactor * 6); // Add up to 6 more power based on distance
                         
                         // Adjust throw angle based on distance (flatter for longer throws)
-                        const throwAngle = 25 + Math.random() * 15 - (distanceFactor * 10); // Lower angle for far throws
+                        // Frisbees need a slight upward angle to generate lift
+                        const throwAngle = 15 + Math.random() * 10 - (distanceFactor * 5); // Lower angle for far throws
                         
                         frisbeeVelocityX = throwPower * Math.cos(throwAngle * Math.PI / 180);
                         frisbeeVelocityY = -throwPower * Math.sin(throwAngle * Math.PI / 180);
@@ -559,9 +560,22 @@
                     // Apply rain effect (makes frisbee heavier/faster)
                     const rainEffect = (rainPercent / 100) * 0.5;
                     
-                    // Update velocity
+                    // Calculate lift coefficient based on frisbee angle and velocity
+                    // Simulating wing-like aerodynamic properties
+                    const frisbeeSpeed = Math.sqrt(frisbeeVelocityX * frisbeeVelocityX + frisbeeVelocityY * frisbeeVelocityY);
+                    const liftCoefficient = 0.3 * Math.max(0, Math.min(1, frisbeeSpeed / 10));
+                    
+                    // Apply lift force (acts against gravity)
+                    const liftForce = liftCoefficient * frisbeeVelocityX * (1 - rainEffect * 0.5);
+                    
+                    // Add slight S-curve flight path by varying lift with distance
+                    const flightProgress = Math.min(1, frisbeeTimer / 3); // Flight progress from 0-1
+                    const liftMultiplier = 1 - Math.pow(2 * flightProgress - 1, 2); // Parabolic curve peaking at middle of flight
+                    
+                    // Update velocity with all forces
                     frisbeeVelocityX += windEffect * dt;
-                    frisbeeVelocityY += (9.8 * (0.8 + rainEffect)) * dt; // Gravity with rain effect
+                    // Apply less gravity due to lift (creates the floating effect)
+                    frisbeeVelocityY += (9.8 * (0.8 + rainEffect) - liftForce * liftMultiplier) * dt;
                     
                     // Slowdown as frisbee gets closer to ground
                     const height = window.innerHeight - window.innerHeight * 0.2 - frisbeeY;
@@ -579,17 +593,19 @@
                     // Minimal wobble - almost flat to the ground (max 2 degrees)
                     frisbeeWobble = Math.sin(frisbeeTimer * 4) * (1 - groundProximityFactor) * 2;
                     
-                    // Update frisbee position and rotation - keep almost perfectly level with ground
+                    // Update frisbee position and rotation
                     frisbee.style.left = `${frisbeeX - 20}px`;
                     frisbee.style.top = `${frisbeeY - 5}px`;
                     
-                    // Set frisbee orientation to stay nearly flat to the ground
-                    // Small X rotation (tilt front/back) and Y rotation (tilt left/right)
-                    const xTilt = frisbeeWobble * 0.3; // Extremely minimal front/back tilt
-                    const yTilt = Math.min(10, Math.max(-10, frisbeeVelocityX * 0.5)); // Very limited side tilt
+                    // Calculate frisbee angle of attack - slight nose-up attitude for lift
+                    // The angle of attack should be related to the ratio of vertical/horizontal velocity
+                    const velocityRatio = frisbeeVelocityY / Math.max(0.1, Math.abs(frisbeeVelocityX));
+                    // Convert to degrees, clamp between -15 and 15 degrees
+                    const angleOfAttack = Math.max(-15, Math.min(15, velocityRatio * 5));
                     
-                    // The frisbee mainly spins around its center (Z-axis) while staying flat
-                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${xTilt}deg) rotateY(${yTilt}deg)`;
+                    // Set frisbee orientation - maintain slight nose-up attitude for lift
+                    // This simulates how a frisbee generates lift by maintaining a precise angle
+                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${angleOfAttack}deg) rotateY(${frisbeeVelocityX > 0 ? -3 : 3}deg)`;
                     
                     // Check if frisbee hits ground
                     if (frisbeeY > window.innerHeight - window.innerHeight * 0.2 - 15) {
