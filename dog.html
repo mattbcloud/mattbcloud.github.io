@@ -542,11 +542,11 @@
                 document.getElementById('cloud3')
             ];
             
-            // Set random speeds for each cloud (reduced to half)
+            // Set very slow initial speeds for clouds (almost standing still)
             cloudSpeeds = [
-                0.25 + Math.random() * 0.15,
-                0.15 + Math.random() * 0.1,
-                0.2 + Math.random() * 0.15
+                0.05 + Math.random() * 0.05,
+                0.03 + Math.random() * 0.04,
+                0.04 + Math.random() * 0.05
             ];
             
             // Set initial positions
@@ -561,9 +561,9 @@
                 let left = parseFloat(cloud.style.left) || 0;
                 
                 // Move cloud based on wind and its own speed
-                // Reduce wind influence for more subtle speed changes
-                const windInfluence = windPercent / 200; // Significantly reduced wind impact
-                const speed = cloudSpeeds[index] * (1 + windInfluence) * 8; // Further reduced base speed
+                // Very minimal movement at low wind levels, more noticeable at higher winds
+                const windInfluence = windPercent / 100; // Moderate wind impact
+                const speed = cloudSpeeds[index] * (1 + windInfluence) * 5; // Very low base speed
                 
                 left += speed * dt;
                 
