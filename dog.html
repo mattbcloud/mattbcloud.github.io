@@ -387,13 +387,25 @@
             homeButton1.addEventListener('click', goHome);
             homeButton2.addEventListener('click', goHome);
             
+            // Detect mobile device
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
             // Mouse/touch move events for dog control
             document.addEventListener('mousemove', moveDog);
-            document.addEventListener('touchmove', moveDogTouch);
+            document.addEventListener('touchmove', moveDogTouch, { passive: false });
             
             // Click/tap events for barking
             document.addEventListener('mousedown', bark);
             document.addEventListener('touchstart', bark);
+            
+            // Add passive flag to prevent warnings on mobile browsers
+            if (isMobile) {
+                // Prevent scrolling when playing
+                document.body.style.overflow = 'hidden';
+                document.body.style.position = 'fixed';
+                document.body.style.width = '100%';
+                document.body.style.height = '100%';
+            }
         }
         
         // Movement handlers
@@ -412,13 +424,20 @@
         function moveDogTouch(e) {
             if (gameActive) {
                 e.preventDefault();
-                dogX = e.touches[0].clientX;
+                const touchX = e.touches[0].clientX;
+                dogX = touchX;
                 
                 // Keep dog within bounds
                 if (dogX < 25) dogX = 25;
                 if (dogX > window.innerWidth - 25) dogX = window.innerWidth - 25;
                 
+                // Update dog position immediately
                 dog.style.left = `${dogX}px`;
+                
+                // Check if dog catches frisbee when moving
+                if (frisbeeActive && frisbeeThrown) {
+                    checkFrisbeeCatch();
+                }
             }
         }
         
@@ -554,15 +573,8 @@
                         gameOver();
                     }
                     
-                    // Check if dog catches frisbee
-                    const dogLeft = dogX - 25;
-                    const dogRight = dogX + 25;
-                    const dogTop = dogY - 40;
-                    
-                    if (frisbeeX > dogLeft && frisbeeX < dogRight && 
-                        frisbeeY > dogTop && frisbeeY < dogY) {
-                        catchFrisbee();
-                    }
+                                // Check if dog catches frisbee
+                    checkFrisbeeCatch();
                 }
                 
                 // Update timer display
@@ -570,10 +582,32 @@
             }
         }
         
+        // Check if dog catches frisbee
+        function checkFrisbeeCatch() {
+            // Make the catch area bigger for mobile
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const catchAreaSize = isMobile ? 35 : 25;
+            
+            const dogLeft = dogX - catchAreaSize;
+            const dogRight = dogX + catchAreaSize;
+            const dogTop = dogY - 40 - (isMobile ? 10 : 0);
+            
+            if (frisbeeX > dogLeft && frisbeeX < dogRight && 
+                frisbeeY > dogTop && frisbeeY < dogY) {
+                catchFrisbee();
+            }
+        }
+        
         // Catch frisbee function
         function catchFrisbee() {
             score += 100 + Math.floor(1000 / (frisbeeTimer + 1));
             scoreDisplay.textContent = score;
+            
+            // Visual feedback
+            dog.style.backgroundColor = '#A0522D';
+            setTimeout(() => {
+                dog.style.backgroundColor = '#8B4513';
+            }, 200);
             
             // Reset frisbee
             frisbeeActive = false;
