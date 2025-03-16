@@ -18,6 +18,85 @@
             touch-action: none;
         }
         
+        /* Cloud styling */
+        .cloud {
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50px;
+            z-index: 1;
+            opacity: 0.9;
+        }
+        
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50%;
+        }
+        
+        #cloud1 {
+            width: 120px;
+            height: 40px;
+            top: 15%;
+            left: 20%;
+        }
+        
+        #cloud1::before {
+            width: 60px;
+            height: 60px;
+            top: -30px;
+            left: 15px;
+        }
+        
+        #cloud1::after {
+            width: 80px;
+            height: 80px;
+            top: -40px;
+            right: 15px;
+        }
+        
+        #cloud2 {
+            width: 180px;
+            height: 50px;
+            top: 10%;
+            right: 25%;
+        }
+        
+        #cloud2::before {
+            width: 70px;
+            height: 70px;
+            top: -35px;
+            left: 20px;
+        }
+        
+        #cloud2::after {
+            width: 100px;
+            height: 100px;
+            top: -50px;
+            right: 30px;
+        }
+        
+        #cloud3 {
+            width: 150px;
+            height: 45px;
+            top: 25%;
+            left: 60%;
+        }
+        
+        #cloud3::before {
+            width: 65px;
+            height: 65px;
+            top: -32px;
+            left: 18px;
+        }
+        
+        #cloud3::after {
+            width: 90px;
+            height: 90px;
+            top: -45px;
+            right: 25px;
+        }
+        
         #game-container {
             position: relative;
             width: 100vw;
@@ -304,6 +383,11 @@
 </head>
 <body>
     <div id="game-container">
+        <!-- Add clouds to the background -->
+        <div id="cloud1" class="cloud"></div>
+        <div id="cloud2" class="cloud"></div>
+        <div id="cloud3" class="cloud"></div>
+        
         <div id="start-screen" class="screen">
             <h1>Dog Plays Catch</h1>
             <p>Control the dog with your mouse or touch to catch the frisbee.<br>
@@ -403,6 +487,10 @@
         let barkCooldown = 0;
         let canThrow = true;
         
+        // Cloud animation variables
+        let clouds = [];
+        let cloudSpeeds = [];
+        
         // DOM elements
         const gameContainer = document.getElementById('game-container');
         const startScreen = document.getElementById('start-screen');
@@ -433,6 +521,9 @@
             // Set position of man
             man.style.left = `${manX}px`;
             
+            // Initialize clouds
+            initializeClouds();
+            
             // Load game progress from localStorage
             loadGameProgress();
             
@@ -441,6 +532,47 @@
             
             // Set up event listeners
             setupEventListeners();
+        }
+        
+        // Initialize clouds
+        function initializeClouds() {
+            clouds = [
+                document.getElementById('cloud1'),
+                document.getElementById('cloud2'),
+                document.getElementById('cloud3')
+            ];
+            
+            // Set random speeds for each cloud
+            cloudSpeeds = [
+                0.5 + Math.random() * 0.3,
+                0.3 + Math.random() * 0.2,
+                0.4 + Math.random() * 0.3
+            ];
+            
+            // Set initial positions
+            clouds.forEach((cloud, index) => {
+                cloud.style.left = `${Math.random() * 80}%`;
+            });
+        }
+        
+        // Update clouds
+        function updateClouds(dt) {
+            clouds.forEach((cloud, index) => {
+                let left = parseFloat(cloud.style.left) || 0;
+                
+                // Move cloud based on wind and its own speed
+                const windInfluence = windPercent / 100;
+                const speed = cloudSpeeds[index] * (1 + windInfluence) * 20;
+                
+                left += speed * dt;
+                
+                // Loop clouds back to left side when they go off screen
+                if (left > 100) {
+                    left = -20;
+                }
+                
+                cloud.style.left = `${left}%`;
+            });
         }
         
         // Set up event listeners
@@ -798,6 +930,9 @@
                     createRaindrops();
                     updateRaindrops(deltaTime);
                 }
+                
+                // Update cloud positions
+                updateClouds(deltaTime);
             }
             
             requestAnimationFrame(gameLoop);
