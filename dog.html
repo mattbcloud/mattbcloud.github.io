@@ -561,8 +561,9 @@
                 let left = parseFloat(cloud.style.left) || 0;
                 
                 // Move cloud based on wind and its own speed
-                const windInfluence = windPercent / 100;
-                const speed = cloudSpeeds[index] * (1 + windInfluence) * 10; // Reduced from 20 to 10 (half speed)
+                // Make cloud speed more responsive to wind percentage
+                const windInfluence = windPercent / 25; // Increased wind impact (from /100 to /25)
+                const speed = cloudSpeeds[index] * (1 + windInfluence) * 10; // Base speed × wind multiplier
                 
                 left += speed * dt;
                 
@@ -1073,6 +1074,15 @@
             windDisplay.textContent = `${windPercent}%`;
             rainDisplay.textContent = `${rainPercent}%`;
             timerDisplay.textContent = '0.0';
+            
+            // Update cloud speeds based on new wind level
+            if (clouds.length > 0) {
+                // Recalculate cloud speeds when wind changes
+                cloudSpeeds = cloudSpeeds.map(baseSpeed => {
+                    // Preserve the original speed ratio but scale with new wind
+                    return baseSpeed * (1 + windPercent / 50);
+                });
+            }
         }
         
         // Save game progress
