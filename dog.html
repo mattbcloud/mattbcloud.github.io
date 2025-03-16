@@ -542,11 +542,11 @@
                 document.getElementById('cloud3')
             ];
             
-            // Set random speeds for each cloud
+            // Set random speeds for each cloud (reduced to half)
             cloudSpeeds = [
-                0.5 + Math.random() * 0.3,
-                0.3 + Math.random() * 0.2,
-                0.4 + Math.random() * 0.3
+                0.25 + Math.random() * 0.15,
+                0.15 + Math.random() * 0.1,
+                0.2 + Math.random() * 0.15
             ];
             
             // Set initial positions
@@ -562,7 +562,7 @@
                 
                 // Move cloud based on wind and its own speed
                 const windInfluence = windPercent / 100;
-                const speed = cloudSpeeds[index] * (1 + windInfluence) * 20;
+                const speed = cloudSpeeds[index] * (1 + windInfluence) * 10; // Reduced from 20 to 10 (half speed)
                 
                 left += speed * dt;
                 
