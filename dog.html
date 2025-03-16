@@ -724,11 +724,12 @@
                         
                         // Adjust throw power based on dog distance
                         const distanceFactor = Math.min(1, dogDistance / maxDistance);
-                        const throwPower = 8 + Math.random() * 4 + (distanceFactor * 6); // Add up to 6 more power based on distance
+                        // Increased base power and distance bonus for longer flights
+                        const throwPower = 12 + Math.random() * 5 + (distanceFactor * 8); 
                         
-                        // Adjust throw angle based on distance (flatter for longer throws)
-                        // Frisbees need a slight upward angle to generate lift
-                        const throwAngle = 15 + Math.random() * 10 - (distanceFactor * 5); // Lower angle for far throws
+                        // Adjust throw angle based on distance (higher angle for longer air time)
+                        // Higher angle for all throws to achieve more height
+                        const throwAngle = 20 + Math.random() * 15 - (distanceFactor * 5);
                         
                         frisbeeVelocityX = throwPower * Math.cos(throwAngle * Math.PI / 180);
                         frisbeeVelocityY = -throwPower * Math.sin(throwAngle * Math.PI / 180);
@@ -786,12 +787,12 @@
                     // Apply less gravity due to lift (creates the floating effect)
                     frisbeeVelocityY += (9.8 * (0.8 + rainEffect) - liftForce * liftMultiplier) * dt;
                     
-                    // Slowdown as frisbee gets closer to ground
+                    // Slowdown as frisbee gets closer to ground - reduced slowdown for longer flights
                     const height = window.innerHeight - window.innerHeight * 0.2 - frisbeeY;
-                    const groundProximityFactor = Math.max(0, Math.min(1, height / 200));
+                    const groundProximityFactor = Math.max(0, Math.min(1, height / 250)); // Increased height range (from 200 to 250)
                     
-                    // Reduced air resistance to allow frisbee to travel farther
-                    frisbeeVelocityX *= (0.995 - (1 - groundProximityFactor) * 0.02);
+                    // Reduced air resistance for longer horizontal travel
+                    frisbeeVelocityX *= (0.997 - (1 - groundProximityFactor) * 0.01); // Less drag (from 0.995 to 0.997)
                     
                     // Update position
                     frisbeeX += frisbeeVelocityX * 60 * dt;
