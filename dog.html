@@ -157,6 +157,7 @@
             background-color: #000;
             position: absolute;
             top: -10px;
+            transition: transform 0.2s ease-out;
         }
         
         #man-leg1 {
@@ -507,6 +508,12 @@
                 const maxDistance = window.innerWidth * 0.7;
                 const distanceFactor = Math.min(1, dogDistance / maxDistance);
                 
+                // Initial man position for animation
+                const initialManLegPosition = {
+                    leg1: document.getElementById('man-leg1').style.transform,
+                    leg2: document.getElementById('man-leg2').style.transform
+                };
+                
                 // Animation for throwing - faster windup for farther throws
                 let throwAnimFrame = 0;
                 const throwSpeed = 1 + distanceFactor; // Animation speeds up with distance
@@ -516,6 +523,17 @@
                     // Animate man's arm for throwing with more windup for distance
                     const windupAngle = -45 - (distanceFactor * 20); // More windup for farther throws
                     manArm2.style.transform = `rotate(${windupAngle + throwAnimFrame * (10 + distanceFactor * 5)}deg)`;
+                    
+                    // Animate man taking a step (leg movement)
+                    if (throwAnimFrame < 5) {
+                        // Start stepping forward
+                        document.getElementById('man-leg1').style.transform = `rotate(-25deg)`;
+                        document.getElementById('man-leg2').style.transform = `rotate(25deg)`;
+                    } else {
+                        // Complete the step
+                        document.getElementById('man-leg1').style.transform = `rotate(-5deg)`;
+                        document.getElementById('man-leg2').style.transform = `rotate(30deg)`;
+                    }
                     
                     if (throwAnimFrame >= 9) {
                         clearInterval(throwAnim);
@@ -543,6 +561,13 @@
                         // Reset arm after throw with delay
                         setTimeout(() => {
                             manArm2.style.transform = 'rotate(-45deg)';
+                            
+                            // Reset legs to original position after a short delay
+                            setTimeout(() => {
+                                document.getElementById('man-leg1').style.transform = 'rotate(-15deg)';
+                                document.getElementById('man-leg2').style.transform = 'rotate(15deg)';
+                            }, 300);
+                            
                             canThrow = true;
                         }, 500);
                     }
