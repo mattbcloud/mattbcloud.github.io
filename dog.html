@@ -432,14 +432,6 @@
     </style>
 </head>
 <body>
-    <!-- Audio elements for sound effects -->
-    <audio id="bark-sound" src="https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3" preload="auto"></audio>
-    <audio id="throw-sound" src="https://assets.mixkit.co/active_storage/sfx/2648/2648-preview.mp3" preload="auto"></audio>
-    <audio id="catch-sound" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3" preload="auto"></audio>
-    <audio id="game-over-sound" src="https://assets.mixkit.co/active_storage/sfx/950/950-preview.mp3" preload="auto"></audio>
-    <audio id="level-up-sound" src="https://assets.mixkit.co/active_storage/sfx/387/387-preview.mp3" preload="auto"></audio>
-    <audio id="rain-sound" src="https://assets.mixkit.co/active_storage/sfx/149/149-preview.mp3" preload="auto" loop></audio>
-    
     <div id="game-container">
         <!-- Add clouds to the background -->
         <div id="cloud1" class="cloud"></div>
@@ -452,7 +444,6 @@
             Click/tap to bark and make the man throw the frisbee.<br>
             Don't let the frisbee hit the ground!</p>
             <button id="start-button" class="button">Start Game</button>
-            <button id="toggle-sound" class="button">Sound: ON</button>
             <div id="high-scores">
                 <h2>High Scores</h2>
                 <table id="high-scores-table">
@@ -549,8 +540,6 @@
         let barking = false;
         let barkCooldown = 0;
         let canThrow = true;
-        let soundEnabled = true;
-        let rainSoundPlaying = false;
         
         // Cloud animation variables
         let clouds = [];
@@ -580,14 +569,6 @@
         const man = document.getElementById('man');
         const manArm1 = document.getElementById('man-arm1');
         const manArm2 = document.getElementById('man-arm2');
-        
-        // Sound elements
-        const barkSound = document.getElementById('bark-sound');
-        const throwSound = document.getElementById('throw-sound');
-        const catchSound = document.getElementById('catch-sound');
-        const gameOverSound = document.getElementById('game-over-sound');
-        const levelUpSound = document.getElementById('level-up-sound');
-        const rainSound = document.getElementById('rain-sound');
         
         // Initialize game
         function initGame() {
@@ -657,23 +638,6 @@
             homeButton1.addEventListener('click', goHome);
             homeButton2.addEventListener('click', goHome);
             
-            // Sound toggle button
-            const toggleSoundButton = document.getElementById('toggle-sound');
-            toggleSoundButton.addEventListener('click', function() {
-                soundEnabled = !soundEnabled;
-                this.textContent = soundEnabled ? 'Sound: ON' : 'Sound: OFF';
-                
-                // Handle rain sound when toggling sound
-                if (!soundEnabled && rainSoundPlaying) {
-                    rainSound.pause();
-                    rainSoundPlaying = false;
-                } else if (soundEnabled && rainPercent > 10 && gameActive) {
-                    // Only restart rain if it was previously playing and sound is now enabled
-                    rainSound.play();
-                    rainSoundPlaying = true;
-                }
-            });
-            
             // Detect mobile device
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             
@@ -692,24 +656,6 @@
                 document.body.style.position = 'fixed';
                 document.body.style.width = '100%';
                 document.body.style.height = '100%';
-            }
-        }
-        
-        // Sound playing function with user interaction check
-        function playSound(sound) {
-            if (soundEnabled) {
-                // Reset the sound to the beginning if it's already playing
-                sound.currentTime = 0;
-                
-                // Get promise from play() to handle any errors
-                const playPromise = sound.play();
-                
-                // Handle potential play() promise rejection (browser may require user interaction)
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.log("Audio playback was prevented by the browser: " + error);
-                    });
-                }
             }
         }
         
@@ -779,9 +725,6 @@
             if (gameActive && !barking && barkCooldown <= 0) {
                 barking = true;
                 barkCooldown = 1; // Cooldown in seconds
-                
-                // Play bark sound
-                playSound(barkSound);
                 
                 // Create bark bubble
                 const bubble = document.createElement('div');
@@ -878,9 +821,6 @@
                         
                         frisbeeThrown = true;
                         
-                        // Play throw sound
-                        playSound(throwSound);
-                        
                         // Reset arm after throw with delay
                         setTimeout(() => {
                             manArm2.style.transform = 'rotate(-45deg)';
@@ -956,7 +896,7 @@
                         gameOver();
                     }
                     
-                    // Check if dog catches frisbee
+                                // Check if dog catches frisbee
                     checkFrisbeeCatch();
                 }
                 
@@ -992,9 +932,6 @@
             score += 100 + Math.floor(1000 / (frisbeeTimer + 1));
             scoreDisplay.textContent = score;
             
-            // Play catch sound
-            playSound(catchSound);
-            
             // Visual feedback with correct coloring
             dog.style.backgroundColor = '#DDDDDD';
             setTimeout(() => {
@@ -1012,3 +949,331 @@
             // Level complete
             levelComplete();
         }
+        
+        // Show temporary level notification
+        function showLevelNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.position = 'absolute';
+            notification.style.top = '30%';
+            notification.style.left = '50%';
+            notification.style.transform = 'translate(-50%, -50%)';
+            notification.style.background = 'rgba(0, 0, 0, 0.7)';
+            notification.style.color = 'white';
+            notification.style.padding = '15px 30px';
+            notification.style.borderRadius = '10px';
+            notification.style.fontSize = '24px';
+            notification.style.fontWeight = 'bold';
+            notification.style.zIndex = '50';
+            notification.style.opacity = '1';
+            notification.style.transition = 'opacity 1s';
+            notification.textContent = message;
+            
+            gameContainer.appendChild(notification);
+            
+            // Fade out and remove after 2 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    gameContainer.removeChild(notification);
+                }, 1000);
+            }, 1000);
+        }
+        
+        // Create raindrops
+        function createRaindrops() {
+            // Create new raindrops based on rain percent
+            const maxRaindrops = Math.floor(rainPercent * 2);
+            const newDropsCount = maxRaindrops - raindrops.length;
+            
+            for (let i = 0; i < newDropsCount; i++) {
+                if (Math.random() < rainPercent / 100) {
+                    const raindrop = document.createElement('div');
+                    raindrop.className = 'rain-drop';
+                    raindrop.style.left = `${Math.random() * window.innerWidth}px`;
+                    raindrop.style.top = `${Math.random() * window.innerHeight * 0.3}px`;
+                    raindrop.speedY = 5 + Math.random() * 5;
+                    raindrop.speedX = (windPercent / 100) * 3 * (Math.random() - 0.3);
+                    
+                    gameContainer.appendChild(raindrop);
+                    raindrops.push(raindrop);
+                }
+            }
+        }
+        
+        // Update raindrops position
+        function updateRaindrops(dt) {
+            for (let i = raindrops.length - 1; i >= 0; i--) {
+                const drop = raindrops[i];
+                let top = parseFloat(drop.style.top);
+                let left = parseFloat(drop.style.left);
+                
+                top += drop.speedY * dt * 60;
+                left += drop.speedX * dt * 60;
+                
+                drop.style.top = `${top}px`;
+                drop.style.left = `${left}px`;
+                
+                // Remove raindrops that hit the ground
+                if (top > window.innerHeight - window.innerHeight * 0.2) {
+                    gameContainer.removeChild(drop);
+                    raindrops.splice(i, 1);
+                }
+            }
+        }
+        
+        // Game loop
+        function gameLoop(timestamp) {
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            
+            // Calculate delta time in seconds
+            deltaTime = (timestamp - lastFrameTime) / 1000;
+            lastFrameTime = timestamp;
+            
+            // Limit delta time to prevent large jumps
+            if (deltaTime > 0.1) deltaTime = 0.1;
+            
+            if (gameActive) {
+                // Update cooldowns
+                if (barkCooldown > 0) {
+                    barkCooldown -= deltaTime;
+                }
+                
+                // Update frisbee physics
+                updateFrisbee(deltaTime);
+                
+                // Create and update raindrops
+                if (rainPercent > 0) {
+                    createRaindrops();
+                    updateRaindrops(deltaTime);
+                }
+                
+                // Update cloud positions
+                updateClouds(deltaTime);
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start game function
+        function startGame() {
+            gameActive = true;
+            frisbeeActive = false;
+            startScreen.classList.add('hidden');
+            
+            // Update displays
+            updateGameInfo();
+            
+            // Start game loop if it's not already running
+            if (!lastFrameTime) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Restart game function
+        function restartGame() {
+            currentLevel = 1;
+            score = 0;
+            windPercent = 5;
+            rainPercent = 0;
+            
+            // Clear raindrops
+            clearRaindrops();
+            
+            // Reset frisbee
+            frisbeeActive = false;
+            frisbee.style.left = '-100px';
+            frisbee.style.top = '-100px';
+            
+            // Update displays
+            updateGameInfo();
+            
+            // Hide game over screen
+            gameOverScreen.classList.add('hidden');
+            
+            // Start game
+            gameActive = true;
+        }
+        
+        // Next level function
+        function nextLevel() {
+            currentLevel++;
+            
+            // Increase difficulty
+            windPercent = 5 * currentLevel;
+            
+            if (currentLevel > 3) {
+                rainPercent = 5 * (currentLevel - 3);
+            }
+            
+            // Clear raindrops
+            clearRaindrops();
+            
+            // Reset frisbee
+            frisbeeActive = false;
+            frisbee.style.left = '-100px';
+            frisbee.style.top = '-100px';
+            
+            // Update displays
+            updateGameInfo();
+            
+            // Hide level complete screen (in case it was shown)
+            levelCompleteScreen.classList.add('hidden');
+            
+            // Start game - gameplay continues without interruption
+            gameActive = true;
+            
+            // Save game progress
+            saveGameProgress();
+        }
+        
+        // Go home function
+        function goHome() {
+            // Hide all screens
+            gameOverScreen.classList.add('hidden');
+            levelCompleteScreen.classList.add('hidden');
+            
+            // Show start screen
+            startScreen.classList.remove('hidden');
+            
+            // Reset game state
+            gameActive = false;
+            
+            // Clear raindrops
+            clearRaindrops();
+            
+            // Update high scores
+            displayHighScores();
+        }
+        
+        // Game over function
+        function gameOver() {
+            gameActive = false;
+            frisbeeActive = false;
+            
+            // Update game over stats
+            gameOverStats.innerHTML = `You reached level: ${currentLevel}<br>Your score: ${score}`;
+            
+            // Show game over screen
+            gameOverScreen.classList.remove('hidden');
+            
+            // Save high score
+            saveHighScore();
+        }
+        
+        // Level complete function
+        function levelComplete() {
+            // Directly advance to the next level without showing a screen
+            nextLevel();
+        }
+        
+        // Clear raindrops function
+        function clearRaindrops() {
+            for (const drop of raindrops) {
+                gameContainer.removeChild(drop);
+            }
+            raindrops = [];
+        }
+        
+        // Update game info displays
+        function updateGameInfo() {
+            levelDisplay.textContent = currentLevel;
+            scoreDisplay.textContent = score;
+            windDisplay.textContent = `${windPercent}%`;
+            rainDisplay.textContent = `${rainPercent}%`;
+            timerDisplay.textContent = '0.0';
+            
+            // Update cloud speeds based on new wind level - much more subtle effect
+            if (clouds.length > 0) {
+                // Recalculate cloud speeds with minimal wind influence
+                cloudSpeeds = cloudSpeeds.map(baseSpeed => {
+                    // Very subtle increase with wind
+                    return baseSpeed * (1 + windPercent / 500);
+                });
+            }
+        }
+        
+        // Save game progress
+        function saveGameProgress() {
+            const gameProgress = {
+                level: currentLevel,
+                score: score,
+                wind: windPercent,
+                rain: rainPercent
+            };
+            
+            localStorage.setItem('dogCatchProgress', JSON.stringify(gameProgress));
+        }
+        
+        // Load game progress
+        function loadGameProgress() {
+            const savedProgress = localStorage.getItem('dogCatchProgress');
+            
+            if (savedProgress) {
+                const progress = JSON.parse(savedProgress);
+                
+                currentLevel = progress.level;
+                score = progress.score;
+                windPercent = progress.wind;
+                rainPercent = progress.rain;
+                
+                updateGameInfo();
+            }
+        }
+        
+        // Save high score
+        function saveHighScore() {
+            let highScores = localStorage.getItem('dogCatchHighScores');
+            
+            if (!highScores) {
+                highScores = [];
+            } else {
+                highScores = JSON.parse(highScores);
+            }
+            
+            highScores.push({
+                level: currentLevel,
+                score: score,
+                wind: windPercent,
+                rain: rainPercent,
+                date: new Date().toLocaleDateString()
+            });
+            
+            // Sort by score (highest first)
+            highScores.sort((a, b) => b.score - a.score);
+            
+            // Limit to top 10
+            if (highScores.length > 10) {
+                highScores = highScores.slice(0, 10);
+            }
+            
+            localStorage.setItem('dogCatchHighScores', JSON.stringify(highScores));
+        }
+        
+        // Display high scores
+        function displayHighScores() {
+            let highScores = localStorage.getItem('dogCatchHighScores');
+            
+            // Clear current high scores
+            highScoresBody.innerHTML = '';
+            
+            if (highScores) {
+                highScores = JSON.parse(highScores);
+                
+                for (const score of highScores) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${score.level}</td>
+                        <td>${score.score}</td>
+                        <td>${score.wind}%</td>
+                        <td>${score.rain}%</td>
+                    `;
+                    highScoresBody.appendChild(row);
+                }
+            }
+        }
+        
+        // Initialize the game when window loads
+        window.onload = initGame;
+    </script>
+</body>
+</html>
