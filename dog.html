@@ -84,15 +84,28 @@
         
         #frisbee {
             position: absolute;
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 10px;
             background-color: orangered;
             border-radius: 50%;
-            border: 3px solid #FF4500;
+            border: 2px solid #FF4500;
             top: -100px;
             left: -100px;
             z-index: 5;
             transform: rotate(0deg);
+            box-shadow: inset 0 0 0 3px rgba(255,255,255,0.3);
+            perspective: 1000px;
+        }
+        
+        #frisbee::after {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            top: -2.5px;
+            left: 12.5px;
         }
         
         #man {
@@ -564,9 +577,9 @@
                     frisbeeWobble = Math.sin(frisbeeTimer * 8) * (1 - groundProximityFactor) * 15;
                     
                     // Update frisbee position and rotation
-                    frisbee.style.left = `${frisbeeX - 15}px`;
-                    frisbee.style.top = `${frisbeeY - 15}px`;
-                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${frisbeeWobble}deg)`;
+                    frisbee.style.left = `${frisbeeX - 20}px`;
+                    frisbee.style.top = `${frisbeeY - 5}px`;
+                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${frisbeeWobble}deg) rotateY(${frisbeeVelocityX * 2}deg)`;
                     
                     // Check if frisbee hits ground
                     if (frisbeeY > window.innerHeight - window.innerHeight * 0.2 - 15) {
@@ -584,7 +597,13 @@
         
         // Check if dog catches frisbee
         function checkFrisbeeCatch() {
-            // Make the catch area bigger for mobile
+            // Calculate the center of the frisbee
+            const frisbeeHeight = 10;
+            const frisbeeWidth = 40;
+            const frisbeeCenterX = frisbeeX;
+            const frisbeeCenterY = frisbeeY;
+            
+            // Check if dog catches frisbee
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             const catchAreaSize = isMobile ? 35 : 25;
             
@@ -592,8 +611,8 @@
             const dogRight = dogX + catchAreaSize;
             const dogTop = dogY - 40 - (isMobile ? 10 : 0);
             
-            if (frisbeeX > dogLeft && frisbeeX < dogRight && 
-                frisbeeY > dogTop && frisbeeY < dogY) {
+            if (frisbeeCenterX > dogLeft && frisbeeCenterX < dogRight && 
+                frisbeeCenterY > dogTop && frisbeeCenterY < dogY) {
                 catchFrisbee();
             }
         }
