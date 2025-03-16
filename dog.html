@@ -597,15 +597,10 @@
                     frisbee.style.left = `${frisbeeX - 20}px`;
                     frisbee.style.top = `${frisbeeY - 5}px`;
                     
-                    // Calculate frisbee angle of attack - slight nose-up attitude for lift
-                    // The angle of attack should be related to the ratio of vertical/horizontal velocity
-                    const velocityRatio = frisbeeVelocityY / Math.max(0.1, Math.abs(frisbeeVelocityX));
-                    // Convert to degrees, clamp between -15 and 15 degrees
-                    const angleOfAttack = Math.max(-15, Math.min(15, velocityRatio * 5));
-                    
-                    // Set frisbee orientation - maintain slight nose-up attitude for lift
-                    // This simulates how a frisbee generates lift by maintaining a precise angle
-                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${angleOfAttack}deg) rotateY(${frisbeeVelocityX > 0 ? -3 : 3}deg)`;
+                    // Keep frisbee perfectly level with ground (only spin around Z-axis)
+                    // No X rotation (no front/back tilt) and minimal Y rotation
+                    // This is a visual adjustment - the physics still calculate lift
+                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(0deg) rotateY(0deg)`;
                     
                     // Check if frisbee hits ground
                     if (frisbeeY > window.innerHeight - window.innerHeight * 0.2 - 15) {
