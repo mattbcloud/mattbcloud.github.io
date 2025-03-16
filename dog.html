@@ -86,14 +86,14 @@
             position: absolute;
             width: 40px;
             height: 6px; /* Thinner height for a flatter disc appearance */
-            background-color: orangered;
+            background-color: #FF4500; /* Brighter orange */
             border-radius: 50%;
-            border: 2px solid #FF4500;
+            border: 2px solid #FF6347;
             top: -100px;
             left: -100px;
             z-index: 5;
             transform: rotate(0deg);
-            box-shadow: inset 0 0 0 3px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 -2px 3px rgba(0,0,0,0.2); /* Shadow on bottom to create depth */
             perspective: 1000px;
             transform-style: preserve-3d;
             backface-visibility: visible;
@@ -102,12 +102,13 @@
         #frisbee::after {
             content: '';
             position: absolute;
-            width: 15px;
-            height: 15px;
-            background-color: rgba(255,255,255,0.4);
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 70%, transparent 100%);
             border-radius: 50%;
-            top: -2.5px;
-            left: 12.5px;
+            top: -5px;
+            left: 12px;
+            z-index: 2;
         }
         
         #man {
@@ -596,10 +597,11 @@
                     // Minimal wobble - almost flat to the ground (max 2 degrees)
                     frisbeeWobble = Math.sin(frisbeeTimer * 4) * (1 - groundProximityFactor) * 2;
                     
-                    // Update frisbee position with zero rotation on all axes
+                    // Update frisbee position with proper orientation
                     frisbee.style.left = `${frisbeeX - 20}px`;
                     frisbee.style.top = `${frisbeeY - 5}px`;
-                    frisbee.style.transform = `rotate(0deg) rotateX(0deg) rotateY(0deg)`;
+                    // Flip the frisbee to make it look right-side up
+                    frisbee.style.transform = `rotate(0deg) rotateX(180deg) rotateY(0deg)`;
                     
                     // Check if frisbee hits ground
                     if (frisbeeY > window.innerHeight - window.innerHeight * 0.2 - 15) {
