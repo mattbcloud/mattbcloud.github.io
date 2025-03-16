@@ -943,8 +943,40 @@
             frisbee.style.left = '-100px';
             frisbee.style.top = '-100px';
             
+            // Display level up notification
+            showLevelNotification(`Level ${currentLevel} Complete!`);
+            
             // Level complete
             levelComplete();
+        }
+        
+        // Show temporary level notification
+        function showLevelNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.position = 'absolute';
+            notification.style.top = '30%';
+            notification.style.left = '50%';
+            notification.style.transform = 'translate(-50%, -50%)';
+            notification.style.background = 'rgba(0, 0, 0, 0.7)';
+            notification.style.color = 'white';
+            notification.style.padding = '15px 30px';
+            notification.style.borderRadius = '10px';
+            notification.style.fontSize = '24px';
+            notification.style.fontWeight = 'bold';
+            notification.style.zIndex = '50';
+            notification.style.opacity = '1';
+            notification.style.transition = 'opacity 1s';
+            notification.textContent = message;
+            
+            gameContainer.appendChild(notification);
+            
+            // Fade out and remove after 2 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    gameContainer.removeChild(notification);
+                }, 1000);
+            }, 1000);
         }
         
         // Create raindrops
@@ -1084,10 +1116,10 @@
             // Update displays
             updateGameInfo();
             
-            // Hide level complete screen
+            // Hide level complete screen (in case it was shown)
             levelCompleteScreen.classList.add('hidden');
             
-            // Start game
+            // Start game - gameplay continues without interruption
             gameActive = true;
             
             // Save game progress
@@ -1130,16 +1162,8 @@
         
         // Level complete function
         function levelComplete() {
-            gameActive = false;
-            
-            // Update level stats
-            levelStats.innerHTML = `Level: ${currentLevel}<br>Score: ${score}`;
-            
-            // Show level complete screen
-            levelCompleteScreen.classList.remove('hidden');
-            
-            // Save game progress
-            saveGameProgress();
+            // Directly advance to the next level without showing a screen
+            nextLevel();
         }
         
         // Clear raindrops function
