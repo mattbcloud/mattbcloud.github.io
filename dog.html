@@ -478,9 +478,9 @@
                     if (throwAnimFrame >= 9) {
                         clearInterval(throwAnim);
                         
-                        // Set velocity
-                        const throwPower = 5 + Math.random() * 3;
-                        const throwAngle = 30 + Math.random() * 20;
+                        // Set velocity - increased power and adjusted angle for longer distance
+                        const throwPower = 8 + Math.random() * 4;
+                        const throwAngle = 25 + Math.random() * 15;
                         frisbeeVelocityX = throwPower * Math.cos(throwAngle * Math.PI / 180);
                         frisbeeVelocityY = -throwPower * Math.sin(throwAngle * Math.PI / 180);
                         
@@ -518,8 +518,8 @@
                     const height = window.innerHeight - window.innerHeight * 0.2 - frisbeeY;
                     const groundProximityFactor = Math.max(0, Math.min(1, height / 200));
                     
-                    // Air resistance
-                    frisbeeVelocityX *= (0.99 - (1 - groundProximityFactor) * 0.03);
+                    // Reduced air resistance to allow frisbee to travel farther
+                    frisbeeVelocityX *= (0.995 - (1 - groundProximityFactor) * 0.02);
                     
                     // Update position
                     frisbeeX += frisbeeVelocityX * 60 * dt;
