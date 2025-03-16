@@ -467,20 +467,35 @@
                 frisbeeX = manX + 30;
                 frisbeeY = window.innerHeight - window.innerHeight * 0.2 - 50;
                 
-                // Animation for throwing
+                // Calculate distance between dog and man for animation speed
+                const dogDistance = Math.abs(dogX - manX);
+                const maxDistance = window.innerWidth * 0.7;
+                const distanceFactor = Math.min(1, dogDistance / maxDistance);
+                
+                // Animation for throwing - faster windup for farther throws
                 let throwAnimFrame = 0;
+                const throwSpeed = 1 + distanceFactor; // Animation speeds up with distance
                 let throwAnim = setInterval(() => {
                     throwAnimFrame++;
                     
-                    // Animate man's arm for throwing
-                    manArm2.style.transform = `rotate(${-45 + throwAnimFrame * 10}deg)`;
+                    // Animate man's arm for throwing with more windup for distance
+                    const windupAngle = -45 - (distanceFactor * 20); // More windup for farther throws
+                    manArm2.style.transform = `rotate(${windupAngle + throwAnimFrame * (10 + distanceFactor * 5)}deg)`;
                     
                     if (throwAnimFrame >= 9) {
                         clearInterval(throwAnim);
                         
-                        // Set velocity - increased power and adjusted angle for longer distance
-                        const throwPower = 8 + Math.random() * 4;
-                        const throwAngle = 25 + Math.random() * 15;
+                        // Calculate distance between dog and man
+                        const dogDistance = Math.abs(dogX - manX);
+                        const maxDistance = window.innerWidth * 0.7; // Maximum expected distance
+                        
+                        // Adjust throw power based on dog distance
+                        const distanceFactor = Math.min(1, dogDistance / maxDistance);
+                        const throwPower = 8 + Math.random() * 4 + (distanceFactor * 6); // Add up to 6 more power based on distance
+                        
+                        // Adjust throw angle based on distance (flatter for longer throws)
+                        const throwAngle = 25 + Math.random() * 15 - (distanceFactor * 10); // Lower angle for far throws
+                        
                         frisbeeVelocityX = throwPower * Math.cos(throwAngle * Math.PI / 180);
                         frisbeeVelocityY = -throwPower * Math.sin(throwAngle * Math.PI / 180);
                         
