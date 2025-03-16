@@ -534,6 +534,9 @@
                         frisbeeVelocityX = throwPower * Math.cos(throwAngle * Math.PI / 180);
                         frisbeeVelocityY = -throwPower * Math.sin(throwAngle * Math.PI / 180);
                         
+                        // Ensure frisbee is set to be level once thrown
+                        frisbee.style.transform = `rotate(0deg) rotateX(0deg) rotateY(0deg)`;
+                        
                         frisbeeThrown = true;
                         
                         // Reset arm after throw with delay
