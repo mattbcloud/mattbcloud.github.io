@@ -95,6 +95,8 @@
             transform: rotate(0deg);
             box-shadow: inset 0 0 0 3px rgba(255,255,255,0.3);
             perspective: 1000px;
+            transform-style: preserve-3d;
+            backface-visibility: visible;
         }
         
         #frisbee::after {
@@ -572,14 +574,20 @@
                     frisbeeX += frisbeeVelocityX * 60 * dt;
                     frisbeeY += frisbeeVelocityY * 60 * dt;
                     
-                    // Update rotation and wobble
-                    frisbeeRotation += (frisbeeVelocityX * 15) * dt;
-                    frisbeeWobble = Math.sin(frisbeeTimer * 8) * (1 - groundProximityFactor) * 15;
+                    // Update rotation and wobble - reduced wobble for more stable flight
+                    frisbeeRotation += (frisbeeVelocityX * 10) * dt;
+                    // Limit wobble to smaller angles (5 degrees max) for a more stable disc appearance
+                    frisbeeWobble = Math.sin(frisbeeTimer * 8) * (1 - groundProximityFactor) * 5;
                     
-                    // Update frisbee position and rotation
+                    // Update frisbee position and rotation - maintain more level orientation
                     frisbee.style.left = `${frisbeeX - 20}px`;
                     frisbee.style.top = `${frisbeeY - 5}px`;
-                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${frisbeeWobble}deg) rotateY(${frisbeeVelocityX * 2}deg)`;
+                    
+                    // Keep the frisbee more level with smaller rotateX values and smoother movement
+                    const leveledWobble = frisbeeWobble * 0.6; // Reduce wobble effect further
+                    const yRotation = Math.min(25, Math.max(-25, frisbeeVelocityX)); // Limit Y rotation to +/- 25 degrees
+                    
+                    frisbee.style.transform = `rotate(${frisbeeRotation}deg) rotateX(${leveledWobble}deg) rotateY(${yRotation}deg)`;
                     
                     // Check if frisbee hits ground
                     if (frisbeeY > window.innerHeight - window.innerHeight * 0.2 - 15) {
