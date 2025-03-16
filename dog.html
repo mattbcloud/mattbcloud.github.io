@@ -156,7 +156,7 @@
             position: absolute;
             width: 50px;
             height: 40px;
-            background-color: #8B4513;
+            background-color: white;
             border-radius: 10px;
             bottom: 20vh;
             left: 50%;
@@ -168,7 +168,7 @@
             position: absolute;
             width: 25px;
             height: 20px;
-            background-color: #8B4513;
+            background-color: white;
             border-radius: 50%;
             top: -15px;
             left: 0;
@@ -178,7 +178,7 @@
             position: absolute;
             width: 15px;
             height: 20px;
-            background-color: #8B4513;
+            background-color: black;
             border-radius: 50%;
             top: -15px;
         }
@@ -195,10 +195,34 @@
             position: absolute;
             width: 20px;
             height: 8px;
-            background-color: #8B4513;
+            background-color: black;
             border-radius: 5px;
             right: -15px;
             top: 10px;
+        }
+        
+        /* Black spots on the dog's body */
+        #dog::before {
+            content: '';
+            position: absolute;
+            width: 28px;
+            height: 22px;
+            background-color: black;
+            border-radius: 50%;
+            top: 5px;
+            left: 3px;
+        }
+        
+        /* Black patch on the dog's face */
+        #dog-head::after {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 12px;
+            background-color: black;
+            border-radius: 50%;
+            top: 0px;
+            right: -3px;
         }
         
         #frisbee {
@@ -850,10 +874,10 @@
             score += 100 + Math.floor(1000 / (frisbeeTimer + 1));
             scoreDisplay.textContent = score;
             
-            // Visual feedback
-            dog.style.backgroundColor = '#A0522D';
+            // Visual feedback with correct coloring
+            dog.style.backgroundColor = '#DDDDDD';
             setTimeout(() => {
-                dog.style.backgroundColor = '#8B4513';
+                dog.style.backgroundColor = 'white';
             }, 200);
             
             // Reset frisbee
