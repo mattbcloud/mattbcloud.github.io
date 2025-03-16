@@ -201,6 +201,32 @@
             top: 10px;
         }
         
+        /* Dog legs */
+        #dog-leg1, #dog-leg2, #dog-leg3, #dog-leg4 {
+            position: absolute;
+            width: 6px;
+            height: 15px;
+            background-color: white;
+            border-radius: 3px;
+            bottom: -12px;
+        }
+        
+        #dog-leg1 {
+            left: 8px;
+        }
+        
+        #dog-leg2 {
+            left: 22px;
+        }
+        
+        #dog-leg3 {
+            right: 22px;
+        }
+        
+        #dog-leg4 {
+            right: 8px;
+        }
+        
         /* Black spots on the dog's body */
         #dog::before {
             content: '';
@@ -471,6 +497,10 @@
             <div id="dog-ear1"></div>
             <div id="dog-ear2"></div>
             <div id="dog-tail"></div>
+            <div id="dog-leg1"></div>
+            <div id="dog-leg2"></div>
+            <div id="dog-leg3"></div>
+            <div id="dog-leg4"></div>
         </div>
         
         <div id="frisbee"></div>
@@ -639,6 +669,9 @@
                 if (dogX > window.innerWidth - 25) dogX = window.innerWidth - 25;
                 
                 dog.style.left = `${dogX}px`;
+                
+                // Animate dog legs while moving
+                animateDogLegs();
             }
         }
         
@@ -655,11 +688,36 @@
                 // Update dog position immediately
                 dog.style.left = `${dogX}px`;
                 
+                // Animate dog legs while moving
+                animateDogLegs();
+                
                 // Check if dog catches frisbee when moving
                 if (frisbeeActive && frisbeeThrown) {
                     checkFrisbeeCatch();
                 }
             }
+        }
+        
+        // Animate dog legs for running effect
+        function animateDogLegs() {
+            const legPairs = [
+                [document.getElementById('dog-leg1'), document.getElementById('dog-leg4')],
+                [document.getElementById('dog-leg2'), document.getElementById('dog-leg3')]
+            ];
+            
+            // Alternate leg positions
+            const now = Date.now();
+            const legPairToLift = Math.floor(now / 150) % 2;
+            
+            legPairs[legPairToLift][0].style.height = '10px';
+            legPairs[legPairToLift][1].style.height = '10px';
+            legPairs[legPairToLift][0].style.bottom = '-7px';
+            legPairs[legPairToLift][1].style.bottom = '-7px';
+            
+            legPairs[1-legPairToLift][0].style.height = '15px';
+            legPairs[1-legPairToLift][1].style.height = '15px';
+            legPairs[1-legPairToLift][0].style.bottom = '-12px';
+            legPairs[1-legPairToLift][1].style.bottom = '-12px';
         }
         
         // Bark function
