@@ -880,6 +880,27 @@
                     frisbeeX += frisbeeVelocityX * 60 * dt;
                     frisbeeY += frisbeeVelocityY * 60 * dt;
                     
+                    // Keep frisbee within screen boundaries
+                    const frisbeeRadius = 20; // Half the width of the frisbee element
+                    
+                    // Check left boundary
+                    if (frisbeeX < frisbeeRadius) {
+                        frisbeeX = frisbeeRadius;
+                        frisbeeVelocityX = Math.abs(frisbeeVelocityX) * 0.8; // Bounce with reduced energy
+                    }
+                    
+                    // Check right boundary
+                    if (frisbeeX > window.innerWidth - frisbeeRadius) {
+                        frisbeeX = window.innerWidth - frisbeeRadius;
+                        frisbeeVelocityX = -Math.abs(frisbeeVelocityX) * 0.8; // Bounce with reduced energy
+                    }
+                    
+                    // Check top boundary
+                    if (frisbeeY < frisbeeRadius) {
+                        frisbeeY = frisbeeRadius;
+                        frisbeeVelocityY = Math.abs(frisbeeVelocityY) * 0.8; // Bounce with reduced energy
+                    }
+                    
                     // Update rotation - frisbee spins primarily around its central axis
                     frisbeeRotation += (frisbeeVelocityX * 10) * dt;
                     // Minimal wobble - almost flat to the ground (max 2 degrees)
@@ -896,7 +917,7 @@
                         gameOver();
                     }
                     
-                                // Check if dog catches frisbee
+                    // Check if dog catches frisbee
                     checkFrisbeeCatch();
                 }
                 
