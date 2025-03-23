@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dartboard!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            max-height: 800px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #start-screen, #game-over-screen, #win-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #f8d847;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+        }
+        
+        .screen-content {
+            max-width: 80%;
+        }
+        
+        .button {
+            background-color: #f8d847;
+            color: #222;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 1.2em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .button:hover {
+            background-color: #ffea8a;
+            transform: scale(1.05);
+        }
+        
+        #dartboard {
+            position: relative;
+            width: 80vmin;
+            height: 80vmin;
+            max-width: 600px;
+            max-height: 600px;
+            border-radius: 50%;
+            background-color: #222;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+        }
+        
+        #reticle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: 2px solid red;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+            pointer-events: none;
+            z-index: 50;
+            transform: translate(-50%, -50%);
+        }
+        
+        .reticle-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background-color: red;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .dart {
+            position: absolute;
+            width: 6px;
+            height: 20px;
+            background-color: silver;
+            z-index: 10;
+            transform-origin: center bottom;
+        }
+        
+        .dart::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #f8d847;
+            border-radius: 50%;
+        }
+        
+        .dart::before {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 8px solid silver;
+        }
+        
+        #score-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            min-width: 150px;
+        }
+        
+        #throws-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2em;
+        }
+        
+        #game-info {
+            position: absolute;
+            bottom: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .button {
+                padding: 12px 24px;
+                font-size: 1em;
+            }
+            
+            #score-container, #throws-container {
+                padding: 10px;
+                font-size: 1em;
+            }
+            
+            #game-info {
+                font-size: 0.9em;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen">
+            <div class="screen-content">
+                <h1>Dartboard!</h1>
+                <p>Aim your darts and score points!</p>
+                <p>Click or tap to throw a dart. The reticle follows your cursor with a slight delay.</p>
+                <p>Single: x1 | Double: x2 | Triple: x3 | Bullseye: 25 | Double Bullseye: 50</p>
+                <button id="start-button" class="button">Start Game</button>
+                <div id="highscore-display"></div>
+            </div>
+        </div>
+        
+        <div id="game-over-screen" class="hidden">
+            <div class="screen-content">
+                <h1>Game Over!</h1>
+                <p id="final-score">Your score: 0</p>
+                <p id="highscore">Highscore: 0</p>
+                <button id="restart-button" class="button">Play Again</button>
+                <button id="menu-button-gameover" class="button">Main Menu</button>
+            </div>
+        </div>
+        
+        <div id="win-screen" class="hidden">
+            <div class="screen-content">
+                <h1>You Win!</h1>
+                <p id="win-score">Your score: 0</p>
+                <p id="win-highscore">Highscore: 0</p>
+                <button id="next-game-button" class="button">Next Game</button>
+                <button id="menu-button-win" class="button">Main Menu</button>
+            </div>
+        </div>
+        
+        <div id="score-container">
+            <p>Score: <span id="score">0</span></p>
+            <p>Round: <span id="round">1</span></p>
+        </div>
+        
+        <div id="throws-container">
+            <p>Throws: <span id="throws">3</span></p>
+        </div>
+        
+        <div id="game-info">
+            <p id="game-message">Aim carefully and throw!</p>
+        </div>
+        
+        <div id="dartboard"></div>
+        <div id="reticle"><div class="reticle-dot"></div></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game elements
+            const startScreen = document.getElementById('start-screen');
+            const gameOverScreen = document.getElementById('game-over-screen');
+            const winScreen = document.getElementById('win-screen');
+            const startButton = document.getElementById('start-button');
+            const restartButton = document.getElementById('restart-button');
+            const nextGameButton = document.getElementById('next-game-button');
+            const menuButtonGameover = document.getElementById('menu-button-gameover');
+            const menuButtonWin = document.getElementById('menu-button-win');
+            const dartboard = document.getElementById('dartboard');
+            const reticle = document.getElementById('reticle');
+            const scoreDisplay = document.getElementById('score');
+            const roundDisplay = document.getElementById('round');
+            const throwsDisplay = document.getElementById('throws');
+            const gameMessage = document.getElementById('game-message');
+            const finalScoreDisplay = document.getElementById('final-score');
+            const highscoreDisplay = document.getElementById('highscore');
+            const winScoreDisplay = document.getElementById('win-score');
+            const winHighscoreDisplay = document.getElementById('win-highscore');
+            const highscoreMainDisplay = document.getElementById('highscore-display');
+            
+            // Game state
+            let gameActive = false;
+            let score = 0;
+            let round = 1;
+            let throws = 3;
+            let highscore = localStorage.getItem('dartboardHighscore') ? parseInt(localStorage.getItem('dartboardHighscore')) : 0;
+            let gameState = localStorage.getItem('dartboardGameState') ? JSON.parse(localStorage.getItem('dartboardGameState')) : null;
+            let gameMode = 'regular'; // 'regular' or 'countdown'
+            let targetScore = 301; // Standard dart game score
+            
+            // Mouse/touch position
+            let mouseX = 0;
+            let mouseY = 0;
+            let reticleX = 0;
+            let reticleY = 0;
+            
+            // Dartboard dimensions
+            let boardCenterX, boardCenterY, boardRadius;
+            
+            // Dartboard sections (clockwise, starting at top)
+            const sections = [
+                20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5
+            ];
+            
+            // Initialize game
+            function init() {
+                updateBoardDimensions();
+                window.addEventListener('resize', updateBoardDimensions);
+                
+                drawDartboard();
+                updateHighscoreDisplay();
+                
+                if (gameState) {
+                    score = gameState.score;
+                    round = gameState.round;
+                    throws = gameState.throws;
+                    updateScoreDisplay();
+                    updateRoundDisplay();
+                    updateThrowsDisplay();
+                }
+                
+                // Event listeners
+                startButton.addEventListener('click', startGame);
+                restartButton.addEventListener('click', restartGame);
+                nextGameButton.addEventListener('click', nextGame);
+                menuButtonGameover.addEventListener('click', goToMainMenu);
+                menuButtonWin.addEventListener('click', goToMainMenu);
+                
+                dartboard.addEventListener('click', throwDart);
+                dartboard.addEventListener('touchstart', handleTouchStart);
+                
+                document.addEventListener('mousemove', updateMousePosition);
+                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                
+                // Animation loop for reticle movement
+                requestAnimationFrame(moveReticle);
+            }
+            
+            function updateBoardDimensions() {
+                const rect = dartboard.getBoundingClientRect();
+                boardCenterX = rect.width / 2;
+                boardCenterY = rect.height / 2;
+                boardRadius = rect.width / 2;
+                
+                // Initial reticle position
+                reticleX = boardCenterX;
+                reticleY = boardCenterY;
+            }
+            
+            function drawDartboard() {
+                // Clear previous elements
+                dartboard.innerHTML = '';
+                
+                const doubleRingOuterRadius = boardRadius * 0.95;
+                const doubleRingInnerRadius = boardRadius * 0.9;
+                const tripleRingOuterRadius = boardRadius * 0.6;
+                const tripleRingInnerRadius = boardRadius * 0.55;
+                const outerBullRadius = boardRadius * 0.15;
+                const innerBullRadius = boardRadius * 0.07;
+                
+                // Draw sections
+                for (let i = 0; i < sections.length; i++) {
+                    const startAngle = (18 * i - 9) * Math.PI / 180;
+                    const endAngle = (18 * (i + 1) - 9) * Math.PI / 180;
+                    
+                    // Outer section (between double and triple)
+                    drawSection(sections[i], startAngle, endAngle, doubleRingInnerRadius, tripleRingOuterRadius, i % 2 === 0 ? '#000' : '#fff');
+                    
+                    // Inner section (between triple and bull)
+                    drawSection(sections[i], startAngle, endAngle, tripleRingInnerRadius, outerBullRadius, i % 2 === 0 ? '#000' : '#fff');
+                    
+                    // Triple ring
+                    drawRingSection(sections[i], startAngle, endAngle, tripleRingOuterRadius, tripleRingInnerRadius, '#00cc00');
+                    
+                    // Double ring
+                    drawRingSection(sections[i], startAngle, endAngle, doubleRingOuterRadius, doubleRingInnerRadius, '#cc0000');
+                }
+                
+                // Draw outer bull
+                const outerBull = document.createElement('div');
+                outerBull.className = 'bull';
+                outerBull.style.position = 'absolute';
+                outerBull.style.left = `${boardCenterX - outerBullRadius}px`;
+                outerBull.style.top = `${boardCenterY - outerBullRadius}px`;
+                outerBull.style.width = `${outerBullRadius * 2}px`;
+                outerBull.style.height = `${outerBullRadius * 2}px`;
+                outerBull.style.borderRadius = '50%';
+                outerBull.style.backgroundColor = '#00cc00';
+                outerBull.dataset.value = 25;
+                dartboard.appendChild(outerBull);
+                
+                // Draw inner bull (bullseye)
+                const innerBull = document.createElement('div');
+                innerBull.className = 'bullseye';
+                innerBull.style.position = 'absolute';
+                innerBull.style.left = `${boardCenterX - innerBullRadius}px`;
+                innerBull.style.top = `${boardCenterY - innerBullRadius}px`;
+                innerBull.style.width = `${innerBullRadius * 2}px`;
+                innerBull.style.height = `${innerBullRadius * 2}px`;
+                innerBull.style.borderRadius = '50%';
+                innerBull.style.backgroundColor = '#cc0000';
+                innerBull.dataset.value = 50;
+                dartboard.appendChild(innerBull);
+                
+                // Draw numbers around the board
+                for (let i = 0; i < sections.length; i++) {
+                    const angle = (18 * i - 9) * Math.PI / 180;
+                    const numberX = boardCenterX + Math.sin(angle) * (boardRadius * 0.98);
+                    const numberY = boardCenterY - Math.cos(angle) * (boardRadius * 0.98);
+                    
+                    const numberElement = document.createElement('div');
+                    numberElement.style.position = 'absolute';
+                    numberElement.style.left = `${numberX}px`;
+                    numberElement.style.top = `${numberY}px`;
+                    numberElement.style.transform = 'translate(-50%, -50%)';
+                    numberElement.style.color = '#f8d847';
+                    numberElement.style.fontSize = `${boardRadius * 0.07}px`;
+                    numberElement.style.fontWeight = 'bold';
+                    numberElement.style.textShadow = '1px 1px 2px black';
+                    numberElement.textContent = sections[i];
+                    dartboard.appendChild(numberElement);
+                }
+            }
+            
+            function drawSection(value, startAngle, endAngle, innerRadius, outerRadius, color) {
+                const section = document.createElement('div');
+                dartboard.appendChild(section);
+                
+                section.className = 'section';
+                section.style.position = 'absolute';
+                section.style.left = `${boardCenterX}px`;
+                section.style.top = `${boardCenterY}px`;
+                section.style.width = `${outerRadius * 2}px`;
+                section.style.height = `${outerRadius * 2}px`;
+                section.style.transform = 'translate(-50%, -50%)';
+                section.dataset.value = value;
+                
+                // Draw section using SVG for the pie shape
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', outerRadius * 2);
+                svg.setAttribute('height', outerRadius * 2);
+                svg.style.position = 'absolute';
+                svg.style.overflow = 'visible';
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                
+                // Calculate path data for the section
+                const x1 = outerRadius + Math.sin(startAngle) * innerRadius;
+                const y1 = outerRadius - Math.cos(startAngle) * innerRadius;
+                const x2 = outerRadius + Math.sin(endAngle) * innerRadius;
+                const y2 = outerRadius - Math.cos(endAngle) * innerRadius;
+                const x3 = outerRadius + Math.sin(endAngle) * outerRadius;
+                const y3 = outerRadius - Math.cos(endAngle) * outerRadius;
+                const x4 = outerRadius + Math.sin(startAngle) * outerRadius;
+                const y4 = outerRadius - Math.cos(startAngle) * outerRadius;
+                
+                const largeArcFlagOuter = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+                const largeArcFlagInner = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+                
+                const d = [
+                    `M ${x1} ${y1}`,
+                    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlagInner} 1 ${x2} ${y2}`,
+                    `L ${x3} ${y3}`,
+                    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlagOuter} 0 ${x4} ${y4}`,
+                    'Z'
+                ].join(' ');
+                
+                path.setAttribute('d', d);
+                path.setAttribute('fill', color);
+                path.setAttribute('stroke', '#333');
+                path.setAttribute('stroke-width', '1');
+                
+                svg.appendChild(path);
+                section.appendChild(svg);
+            }
+            
+            function drawRingSection(value, startAngle, endAngle, outerRadius, innerRadius, color) {
+                const section = document.createElement('div');
+                dartboard.appendChild(section);
+                
+                section.className = 'ring-section';
+                section.style.position = 'absolute';
+                section.style.left = `${boardCenterX}px`;
+                section.style.top = `${boardCenterY}px`;
+                section.style.width = `${outerRadius * 2}px`;
+                section.style.height = `${outerRadius * 2}px`;
+                section.style.transform = 'translate(-50%, -50%)';
+                
+                if (color === '#00cc00') {
+                    section.dataset.value = value * 3; // Triple ring
+                    section.dataset.type = 'triple';
+                } else {
+                    section.dataset.value = value * 2; // Double ring
+                    section.dataset.type = 'double';
+                }
+                
+                // Draw ring section using SVG
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', outerRadius * 2);
+                svg.setAttribute('height', outerRadius * 2);
+                svg.style.position = 'absolute';
+                svg.style.overflow = 'visible';
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                
+                // Calculate path data for the ring section
+                const x1 = outerRadius + Math.sin(startAngle) * innerRadius;
+                const y1 = outerRadius - Math.cos(startAngle) * innerRadius;
+                const x2 = outerRadius + Math.sin(endAngle) * innerRadius;
+                const y2 = outerRadius - Math.cos(endAngle) * innerRadius;
+                const x3 = outerRadius + Math.sin(endAngle) * outerRadius;
+                const y3 = outerRadius - Math.cos(endAngle) * outerRadius;
+                const x4 = outerRadius + Math.sin(startAngle) * outerRadius;
+                const y4 = outerRadius - Math.cos(startAngle) * outerRadius;
+                
+                const largeArcFlagOuter = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+                const largeArcFlagInner = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+                
+                const d = [
+                    `M ${x1} ${y1}`,
+                    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlagInner} 1 ${x2} ${y2}`,
+                    `L ${x3} ${y3}`,
+                    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlagOuter} 0 ${x4} ${y4}`,
+                    'Z'
+                ].join(' ');
+                
+                path.setAttribute('d', d);
+                path.setAttribute('fill', color);
+                path.setAttribute('stroke', '#333');
+                path.setAttribute('stroke-width', '1');
+                
+                svg.appendChild(path);
+                section.appendChild(svg);
+            }
+            
+            function updateMousePosition(e) {
+                const rect = dartboard.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+            }
+            
+            function handleTouchStart(e) {
+                e.preventDefault();
+                throwDart(e);
+            }
+            
+            function handleTouchMove(e) {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    const rect = dartboard.getBoundingClientRect();
+                    mouseX = e.touches[0].clientX - rect.left;
+                    mouseY = e.touches[0].clientY - rect.top;
+                }
+            }
+            
+            function moveReticle() {
+                if (!gameActive) {
+                    // If game not active, center reticle
+                    reticleX = boardCenterX;
+                    reticleY = boardCenterY;
+                } else {
+                    // Calculate distance between current reticle position and mouse
+                    const dx = mouseX - reticleX;
+                    const dy = mouseY - reticleY;
+                    
+                    // Add slight random movement
+                    const randomX = (Math.random() - 0.5) * 5;
+                    const randomY = (Math.random() - 0.5) * 5;
+                    
+                    // Move reticle towards mouse with some lag and randomness
+                    reticleX += dx * 0.1 + randomX;
+                    reticleY += dy * 0.1 + randomY;
+                    
+                    // Constrain reticle to dartboard
+                    const distanceFromCenter = Math.sqrt(
+                        Math.pow(reticleX - boardCenterX, 2) + 
+                        Math.pow(reticleY - boardCenterY, 2)
+                    );
+                    
+                    if (distanceFromCenter > boardRadius) {
+                        const angle = Math.atan2(reticleY - boardCenterY, reticleX - boardCenterX);
+                        reticleX = boardCenterX + Math.cos(angle) * boardRadius * 0.95;
+                        reticleY = boardCenterY + Math.sin(angle) * boardRadius * 0.95;
+                    }
+                }
+                
+                // Update reticle position
+                reticle.style.left = `${reticleX}px`;
+                reticle.style.top = `${reticleY}px`;
+                
+                requestAnimationFrame(moveReticle);
+            }
+            
+            function throwDart(e) {
+                if (!gameActive) return;
+                
+                // Prevent throwing when no throws left
+                if (throws <= 0) return;
+                
+                // Decrease throws
+                throws--;
+                updateThrowsDisplay();
+                
+                // Create dart element
+                const dart = document.createElement('div');
+                dart.className = 'dart';
+                
+                // Add some randomness to the throw
+                const accuracy = 0.8; // 80% accuracy
+                const randomOffset = (1 - accuracy) * boardRadius * 0.3;
+                const throwX = reticleX + (Math.random() - 0.5) * randomOffset;
+                const throwY = reticleY + (Math.random() - 0.5) * randomOffset;
+                
+                // Position the dart
+                dart.style.left = `${throwX}px`;
+                dart.style.top = `${throwY}px`;
+                
+                // Calculate angle for the dart rotation
+                const angle = Math.random() * 360;
+                dart.style.transform = `rotate(${angle}deg)`;
+                
+                dartboard.appendChild(dart);
+                
+                // Calculate points
+                const points = calculatePoints(throwX, throwY);
+                
+                // Update score
+                if (gameMode === 'countdown') {
+                    // For 301/501 games, subtract points
+                    // Check if this would take score below 0
+                    if (score - points < 0) {
+                        gameMessage.textContent = 'Bust! You went below 0.';
+                        // No score change, end of turn
+                    } else if (score - points === 0) {
+                        // Win condition
+                        score = 0;
+                        updateScoreDisplay();
+                        setTimeout(() => {
+                            winGame();
+                        }, 1000);
+                        return;
+                    } else {
+                        score -= points;
+                        gameMessage.textContent = `Hit ${points}! Score: ${score}`;
+                    }
+                } else {
+                    // For regular games, add points
+                    score += points;
+                    gameMessage.textContent = `Hit ${points}! Score: ${score}`;
+                    
+                    // Check for win condition (reaching or exceeding target score)
+                    if (score >= targetScore) {
+                        updateScoreDisplay();
+                        setTimeout(() => {
+                            winGame();
+                        }, 1000);
+                        return;
+                    }
+                }
+                
+                updateScoreDisplay();
+                saveGameState();
+                
+                // Check if turn is over
+                if (throws === 0) {
+                    endTurn();
+                }
+            }
+            
+            function calculatePoints(x, y) {
+                // Distance from center
+                const distanceFromCenter = Math.sqrt(
+                    Math.pow(x - boardCenterX, 2) + 
+                    Math.pow(y - boardCenterY, 2)
+                );
+                
+                // Check if dart is outside the board
+                if (distanceFromCenter > boardRadius) {
+                    return 0;
+                }
+                
+                // Check if dart hit bullseye (inner bull)
+                if (distanceFromCenter <= boardRadius * 0.07) {
+                    return 50;
+                }
+                
+                // Check if dart hit outer bull
+                if (distanceFromCenter <= boardRadius * 0.15) {
+                    return 25;
+                }
+                
+                // Calculate angle to determine section
+                let angle = Math.atan2(y - boardCenterY, x - boardCenterX);
+                angle = angle * 180 / Math.PI;
+                
+                // Adjust angle to match dartboard layout
+                angle = 90 - angle;
+                if (angle < 0) angle += 360;
+                
+                // Determine section index (20 sections, each 18 degrees)
+                const sectionIndex = Math.floor(angle / 18) % 20;
+                const sectionValue = sections[sectionIndex];
+                
+                // Check if dart hit triple ring
+                if (distanceFromCenter >= boardRadius * 0.55 && distanceFromCenter <= boardRadius * 0.6) {
+                    return sectionValue * 3;
+                }
+                
+                // Check if dart hit double ring
+                if (distanceFromCenter >= boardRadius * 0.9 && distanceFromCenter <= boardRadius * 0.95) {
+                    return
+                    return sectionValue * 2;
+                }
+                
+                // Regular section
+                return sectionValue;
+            }
+            
+            function endTurn() {
+                round++;
+                throws = 3;
+                
+                // Update displays
+                updateRoundDisplay();
+                updateThrowsDisplay();
+                
+                // Clear darts from board
+                setTimeout(() => {
+                    const darts = document.querySelectorAll('.dart');
+                    darts.forEach(dart => dart.remove());
+                    
+                    gameMessage.textContent = 'Next round! Aim carefully.';
+                }, 1500);
+                
+                saveGameState();
+            }
+            
+            function startGame() {
+                gameActive = true;
+                startScreen.classList.add('hidden');
+                
+                // Set up game mode
+                gameMode = 'regular'; // Default mode
+                targetScore = 301; // Default target
+                
+                // For 301/501 style games, set initial score to target
+                if (gameMode === 'countdown') {
+                    score = targetScore;
+                } else {
+                    score = 0;
+                }
+                
+                round = 1;
+                throws = 3;
+                
+                updateScoreDisplay();
+                updateRoundDisplay();
+                updateThrowsDisplay();
+                
+                gameMessage.textContent = 'Game started! Aim carefully and throw.';
+                
+                saveGameState();
+            }
+            
+            function restartGame() {
+                gameActive = true;
+                gameOverScreen.classList.add('hidden');
+                
+                // Reset game state
+                score = 0;
+                round = 1;
+                throws = 3;
+                
+                updateScoreDisplay();
+                updateRoundDisplay();
+                updateThrowsDisplay();
+                
+                gameMessage.textContent = 'Game restarted! Aim carefully.';
+                
+                saveGameState();
+            }
+            
+            function nextGame() {
+                gameActive = true;
+                winScreen.classList.add('hidden');
+                
+                // Increase difficulty
+                targetScore += 100;
+                
+                // Reset game state
+                score = 0;
+                round = 1;
+                throws = 3;
+                
+                updateScoreDisplay();
+                updateRoundDisplay();
+                updateThrowsDisplay();
+                
+                gameMessage.textContent = `New target: ${targetScore}! Aim carefully.`;
+                
+                saveGameState();
+            }
+            
+            function goToMainMenu() {
+                gameActive = false;
+                gameOverScreen.classList.add('hidden');
+                winScreen.classList.add('hidden');
+                startScreen.classList.remove('hidden');
+                
+                // Clear darts from board
+                const darts = document.querySelectorAll('.dart');
+                darts.forEach(dart => dart.remove());
+                
+                // Reset game state for next start
+                clearGameState();
+            }
+            
+            function winGame() {
+                gameActive = false;
+                
+                // Update highscore
+                if (score > highscore) {
+                    highscore = score;
+                    localStorage.setItem('dartboardHighscore', highscore);
+                }
+                
+                // Update win screen
+                winScoreDisplay.textContent = `Your score: ${score}`;
+                winHighscoreDisplay.textContent = `Highscore: ${highscore}`;
+                
+                // Show win screen
+                winScreen.classList.remove('hidden');
+                
+                // Clear game state
+                clearGameState();
+            }
+            
+            function gameOver() {
+                gameActive = false;
+                
+                // Update highscore
+                if (score > highscore) {
+                    highscore = score;
+                    localStorage.setItem('dartboardHighscore', highscore);
+                }
+                
+                // Update game over screen
+                finalScoreDisplay.textContent = `Your score: ${score}`;
+                highscoreDisplay.textContent = `Highscore: ${highscore}`;
+                
+                // Show game over screen
+                gameOverScreen.classList.remove('hidden');
+                
+                // Clear game state
+                clearGameState();
+            }
+            
+            function updateScoreDisplay() {
+                scoreDisplay.textContent = score;
+            }
+            
+            function updateRoundDisplay() {
+                roundDisplay.textContent = round;
+            }
+            
+            function updateThrowsDisplay() {
+                throwsDisplay.textContent = throws;
+            }
+            
+            function updateHighscoreDisplay() {
+                if (highscore > 0) {
+                    highscoreMainDisplay.textContent = `Highscore: ${highscore}`;
+                }
+            }
+            
+            function saveGameState() {
+                const state = {
+                    score: score,
+                    round: round,
+                    throws: throws
+                };
+                
+                localStorage.setItem('dartboardGameState', JSON.stringify(state));
+            }
+            
+            function clearGameState() {
+                localStorage.removeItem('dartboardGameState');
+            }
+            
+            // Initialize the game
+            init();
+        });
+    </script>
+</body>
+</html>
