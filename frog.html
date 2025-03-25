@@ -133,9 +133,10 @@
     </div>
     
     <script>
-        // JavaScript game logic
-        // Use immediately invoked function to ensure code runs right away
-        (function() {
+        // Make sure the script runs when the window has loaded
+        window.onload = function() {
+            console.log("Window loaded, initializing game...");
+            
             // Game elements
             const canvas = document.getElementById('game-canvas');
             const ctx = canvas.getContext('2d');
@@ -147,6 +148,11 @@
             const restartButton = document.getElementById('restart-button');
             const nextLevelButton = document.getElementById('next-level-button');
             const startButton = document.getElementById('start-button');
+            
+            console.log("DOM elements loaded:", 
+                        !!canvas, !!ctx, !!levelDisplay, !!livesDisplay, 
+                        !!gameOverScreen, !!levelCompleteScreen, !!instructionsScreen,
+                        !!restartButton, !!nextLevelButton, !!startButton);
             
             // Sound effects (using AudioContext)
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -217,18 +223,53 @@
                 score: 0
             };
             
-            // Start game (from instructions screen)
-            startButton.addEventListener('click', function() {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                instructionsScreen.classList.add('hidden');
-                initGame(1);
-                console.log("Game started");
-            });
+            // Attach event listeners
+            function setupEventListeners() {
+                console.log("Setting up event listeners");
+                
+                // Start game button
+                startButton.addEventListener('click', function() {
+                    console.log("Start button clicked");
+                    audioCtx.resume().then(() => {
+                        console.log("Audio context resumed");
+                        instructionsScreen.classList.add('hidden');
+                        initGame(1);
+                    }).catch(err => {
+                        console.error("Error resuming audio context:", err);
+                        // Still continue with the game even if audio fails
+                        instructionsScreen.classList.add('hidden');
+                        initGame(1);
+                    });
+                });
+                
+                // Restart button
+                restartButton.addEventListener('click', function() {
+                    console.log("Restart button clicked");
+                    audioCtx.resume().catch(err => console.error("Audio resume error:", err));
+                    gameOverScreen.classList.add('hidden');
+                    initGame(1); // Restart from level 1
+                });
+                
+                // Next level button
+                nextLevelButton.addEventListener('click', function() {
+                    console.log("Next level button clicked");
+                    audioCtx.resume().catch(err => console.error("Audio resume error:", err));
+                    levelCompleteScreen.classList.add('hidden');
+                    initGame(gameState.level + 1); // Start next level
+                });
+                
+                // Game interaction events
+                canvas.addEventListener('click', handleClick);
+                canvas.addEventListener('touchstart', handleTouch, { passive: false });
+            }
+            
+            // Call to set up all event listeners
+            setupEventListeners();
             
             // Initialize/reset game
             function initGame(level = 1) {
+                console.log("Initializing game at level", level);
+                
                 // Reset game state
                 gameState.initialized = true;
                 gameState.level = level;
@@ -816,26 +857,8 @@
                 }, 150);
             }
             
-            // Event listeners
-            canvas.addEventListener('click', handleClick);
-            canvas.addEventListener('touchstart', handleTouch, { passive: false });
-            
-            restartButton.addEventListener('click', function() {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                initGame(1); // Restart from level 1
-            });
-            
-            nextLevelButton.addEventListener('click', function() {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                initGame(gameState.level + 1); // Start next level
-            });
-            
-            // Audio context resume handled in the main start button listener above
-        })(); // End of immediately invoked function
+            console.log("Game initialization complete and ready to play!");
+        };
     </script>
 </body>
 </html>
