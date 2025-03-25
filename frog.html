@@ -134,7 +134,8 @@
     
     <script>
         // JavaScript game logic
-        document.addEventListener('DOMContentLoaded', function() {
+        // Use immediately invoked function to ensure code runs right away
+        (function() {
             // Game elements
             const canvas = document.getElementById('game-canvas');
             const ctx = canvas.getContext('2d');
@@ -218,8 +219,12 @@
             
             // Start game (from instructions screen)
             startButton.addEventListener('click', function() {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
                 instructionsScreen.classList.add('hidden');
                 initGame(1);
+                console.log("Game started");
             });
             
             // Initialize/reset game
@@ -829,12 +834,8 @@
                 initGame(gameState.level + 1); // Start next level
             });
             
-            startButton.addEventListener('click', function() {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-            });
-        });
+            // Audio context resume handled in the main start button listener above
+        })(); // End of immediately invoked function
     </script>
 </body>
 </html>
