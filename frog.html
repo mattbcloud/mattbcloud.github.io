@@ -290,7 +290,7 @@
                     
                     const vehicle = {
                         x: x,
-                        y: lane.y - vehicleHeight / 2,
+                        y: lane.y + (game.state.laneHeight/2) - (vehicleHeight/2), // Center in lane
                         width: vehicleWidth,
                         height: vehicleHeight,
                         color: game.getRandomCarColor()
