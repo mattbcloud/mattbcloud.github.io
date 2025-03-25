@@ -133,731 +133,759 @@
     </div>
     
     <script>
-        // Make sure the script runs when the window has loaded
+        // Game initialization will happen only after window is fully loaded
         window.onload = function() {
-            console.log("Window loaded, initializing game...");
-            
-            // Game elements
-            const canvas = document.getElementById('game-canvas');
-            const ctx = canvas.getContext('2d');
-            const levelDisplay = document.getElementById('level-display');
-            const livesDisplay = document.getElementById('lives-display');
-            const gameOverScreen = document.getElementById('game-over');
-            const levelCompleteScreen = document.getElementById('level-complete');
-            const instructionsScreen = document.getElementById('instructions');
-            const restartButton = document.getElementById('restart-button');
-            const nextLevelButton = document.getElementById('next-level-button');
-            const startButton = document.getElementById('start-button');
-            
-            console.log("DOM elements loaded:", 
-                        !!canvas, !!ctx, !!levelDisplay, !!livesDisplay, 
-                        !!gameOverScreen, !!levelCompleteScreen, !!instructionsScreen,
-                        !!restartButton, !!nextLevelButton, !!startButton);
-            
-            // Sound effects (using AudioContext)
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            
-            // Create beep sound function
-            function beep(frequency, duration, volume = 0.5) {
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
+            const Game = (function() {
+                // Private game object with all methods and properties
+                const game = {};
                 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
+                // Game elements cache
+                game.canvas = document.getElementById('game-canvas');
+                game.ctx = game.canvas.getContext('2d');
+                game.levelDisplay = document.getElementById('level-display');
+                game.livesDisplay = document.getElementById('lives-display');
+                game.gameOverScreen = document.getElementById('game-over');
+                game.levelCompleteScreen = document.getElementById('level-complete');
+                game.instructionsScreen = document.getElementById('instructions');
+                game.restartButton = document.getElementById('restart-button');
+                game.nextLevelButton = document.getElementById('next-level-button');
+                game.startButton = document.getElementById('start-button');
                 
-                oscillator.type = 'sine';
-                oscillator.frequency.value = frequency;
-                gainNode.gain.value = volume;
-                
-                oscillator.start();
-                
-                setTimeout(() => {
-                    oscillator.stop();
-                }, duration);
-            }
-            
-            // Set canvas dimensions
-            function resizeCanvas() {
-                const containerWidth = canvas.parentNode.clientWidth;
-                const aspectRatio = 3/4; // Height will be 75% of width
-                
-                canvas.width = containerWidth;
-                canvas.height = containerWidth * aspectRatio;
-                
-                // If game is initialized, update lane dimensions
-                if (gameState.initialized) {
-                    gameState.laneHeight = canvas.height / 8; // 6 lanes + start + finish areas
-                    repositionFrog();
-                }
-            }
-            
-            // Call resize on load and window resize
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            
-            // Game state
-            let gameState = {
-                initialized: false,
-                level: 1,
-                maxLevel: 5,
-                lives: 3,
-                playing: false,
-                levelComplete: false,
-                frog: {
-                    x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
-                    lane: 0,
-                    jumping: false,
-                    jumpHeight: 0,
-                    jumpDirection: 1
-                },
-                lanes: [],
-                laneHeight: 0,
-                laneCount: 6,
-                baseCarSpeed: 1,
-                carSpeed: 0,
-                spawnMultiplier: 1,
-                score: 0
-            };
-            
-            // Attach event listeners
-            function setupEventListeners() {
-                console.log("Setting up event listeners");
-                
-                // Start game button
-                startButton.addEventListener('click', function() {
-                    console.log("Start button clicked");
-                    audioCtx.resume().then(() => {
-                        console.log("Audio context resumed");
-                        instructionsScreen.classList.add('hidden');
-                        initGame(1);
-                    }).catch(err => {
-                        console.error("Error resuming audio context:", err);
-                        // Still continue with the game even if audio fails
-                        instructionsScreen.classList.add('hidden');
-                        initGame(1);
-                    });
-                });
-                
-                // Restart button
-                restartButton.addEventListener('click', function() {
-                    console.log("Restart button clicked");
-                    audioCtx.resume().catch(err => console.error("Audio resume error:", err));
-                    gameOverScreen.classList.add('hidden');
-                    initGame(1); // Restart from level 1
-                });
-                
-                // Next level button
-                nextLevelButton.addEventListener('click', function() {
-                    console.log("Next level button clicked");
-                    audioCtx.resume().catch(err => console.error("Audio resume error:", err));
-                    levelCompleteScreen.classList.add('hidden');
-                    initGame(gameState.level + 1); // Start next level
-                });
-                
-                // Game interaction events
-                canvas.addEventListener('click', handleClick);
-                canvas.addEventListener('touchstart', handleTouch, { passive: false });
-            }
-            
-            // Call to set up all event listeners
-            setupEventListeners();
-            
-            // Initialize/reset game
-            function initGame(level = 1) {
-                console.log("Initializing game at level", level);
-                
-                // Reset game state
-                gameState.initialized = true;
-                gameState.level = level;
-                gameState.playing = true;
-                gameState.levelComplete = false;
-                
-                // Reset lives if starting from level 1
-                if (level === 1) {
-                    gameState.lives = 3;
-                    gameState.score = 0;
-                }
-                
-                // Hide UI elements
-                gameOverScreen.classList.add('hidden');
-                levelCompleteScreen.classList.add('hidden');
-                
-                // Update UI displays
-                levelDisplay.textContent = `Level: ${gameState.level}`;
-                livesDisplay.textContent = `Lives: ${gameState.lives}`;
-                
-                // Set lane dimensions
-                gameState.laneHeight = canvas.height / 8; // 6 lanes + start + finish areas
-                
-                // Create frog
-                const frogSize = gameState.laneHeight * 0.7;
-                gameState.frog = {
-                    x: canvas.width / 2 - frogSize / 2,
-                    y: canvas.height - gameState.laneHeight / 2 - frogSize / 2,
-                    width: frogSize,
-                    height: frogSize,
-                    lane: 0,
-                    jumping: false,
-                    jumpHeight: 0,
-                    jumpDirection: 1
+                // Game state
+                game.state = {
+                    initialized: false,
+                    level: 1,
+                    maxLevel: 5,
+                    lives: 3,
+                    playing: false,
+                    levelComplete: false,
+                    frog: {
+                        x: 0,
+                        y: 0,
+                        width: 0,
+                        height: 0,
+                        lane: 0,
+                        jumping: false,
+                        jumpHeight: 0,
+                        jumpDirection: 1
+                    },
+                    lanes: [],
+                    laneHeight: 0,
+                    laneCount: 6,
+                    baseCarSpeed: 1,
+                    carSpeed: 0,
+                    spawnMultiplier: 1,
+                    score: 0
                 };
                 
-                // Set car speed based on level (pixels per frame)
-                gameState.baseCarSpeed = 1 + (gameState.level - 1) * 0.75;
-                gameState.spawnMultiplier = 1 - (gameState.level - 1) * 0.1; // Decrease spawn delay with level
+                // Game loop variables
+                game.loopRunning = false;
                 
-                // Initialize lanes with cars
-                initLanes();
+                // Audio
+                game.setupAudio = function() {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    game.audioCtx = new AudioContext();
+                };
                 
-                // Start game loop if not already running
-                if (!gameLoopRunning) {
-                    gameLoopRunning = true;
-                    gameLoop();
-                }
-            }
-            
-            // Reposition frog after window resize
-            function repositionFrog() {
-                const frogSize = gameState.laneHeight * 0.7;
-                gameState.frog.width = frogSize;
-                gameState.frog.height = frogSize;
+                // Create beep sound
+                game.beep = function(frequency, duration, volume = 0.5) {
+                    try {
+                        const oscillator = game.audioCtx.createOscillator();
+                        const gainNode = game.audioCtx.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(game.audioCtx.destination);
+                        
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = frequency;
+                        gainNode.gain.value = volume;
+                        
+                        oscillator.start();
+                        
+                        setTimeout(() => {
+                            oscillator.stop();
+                        }, duration);
+                    } catch (e) {
+                        console.error("Audio error:", e);
+                    }
+                };
                 
-                // Keep frog in the same lane but adjust size and y position
-                let laneY;
-                if (gameState.frog.lane === 0) {
-                    laneY = canvas.height - gameState.laneHeight / 2;
-                } else if (gameState.frog.lane > gameState.laneCount) {
-                    laneY = gameState.laneHeight / 2;
-                } else {
-                    laneY = gameState.laneHeight * (gameState.laneCount - gameState.frog.lane + 1) + gameState.laneHeight / 2;
-                }
+                // Canvas setup
+                game.resizeCanvas = function() {
+                    const containerWidth = game.canvas.parentNode.clientWidth;
+                    const aspectRatio = 3/4; // Height will be 75% of width
+                    
+                    game.canvas.width = containerWidth;
+                    game.canvas.height = containerWidth * aspectRatio;
+                    
+                    // If game is initialized, update lane dimensions
+                    if (game.state.initialized) {
+                        game.state.laneHeight = game.canvas.height / 8; // 6 lanes + start + finish areas
+                        game.repositionFrog();
+                    }
+                };
                 
-                gameState.frog.y = laneY - frogSize / 2;
+                // Reposition frog after window resize
+                game.repositionFrog = function() {
+                    const frogSize = game.state.laneHeight * 0.7;
+                    game.state.frog.width = frogSize;
+                    game.state.frog.height = frogSize;
+                    
+                    // Keep frog in the same lane but adjust size and y position
+                    let laneY;
+                    if (game.state.frog.lane === 0) {
+                        laneY = game.canvas.height - game.state.laneHeight / 2;
+                    } else if (game.state.frog.lane > game.state.laneCount) {
+                        laneY = game.state.laneHeight / 2;
+                    } else {
+                        laneY = game.state.laneHeight * (game.state.laneCount - game.state.frog.lane + 1) + game.state.laneHeight / 2;
+                    }
+                    
+                    game.state.frog.y = laneY - frogSize / 2;
+                    
+                    // Make sure frog stays within horizontal bounds
+                    if (game.state.frog.x + frogSize > game.canvas.width) {
+                        game.state.frog.x = game.canvas.width - frogSize;
+                    }
+                };
                 
-                // Make sure frog stays within horizontal bounds
-                if (gameState.frog.x + frogSize > canvas.width) {
-                    gameState.frog.x = canvas.width - frogSize;
-                }
-            }
-            
-            // Initialize lanes with vehicles
-            function initLanes() {
-                gameState.lanes = [];
+                // Initialize lanes with vehicles
+                game.initLanes = function() {
+                    game.state.lanes = [];
+                    
+                    // Create 6 lanes with vehicles
+                    for (let i = 0; i < game.state.laneCount; i++) {
+                        const lane = {
+                            y: game.state.laneHeight * (i + 1),
+                            vehicles: [],
+                            direction: i % 2 === 0 ? 1 : -1, // Alternate directions
+                            lastSpawnTime: 0,
+                            spawnDelay: (Math.random() * 3000 + 4000) * game.state.spawnMultiplier, // Doubled spawn delay
+                            speed: game.state.baseCarSpeed * (0.8 + Math.random() * 0.4) // Random speed variation
+                        };
+                        
+                        game.state.lanes.push(lane);
+                        
+                        // Pre-populate lanes with fewer vehicles
+                        // 50% chance of having a vehicle in each lane
+                        if (Math.random() > 0.5) {
+                            game.spawnVehicle(lane, true);
+                        }
+                    }
+                };
                 
-                // Create 6 lanes with vehicles
-                for (let i = 0; i < gameState.laneCount; i++) {
-                    const lane = {
-                        y: gameState.laneHeight * (i + 1),
-                        vehicles: [],
-                        direction: i % 2 === 0 ? 1 : -1, // Alternate directions
-                        lastSpawnTime: 0,
-                        spawnDelay: (Math.random() * 1500 + 2000) * gameState.spawnMultiplier, // Random delay, decrease with level
-                        speed: gameState.baseCarSpeed * (0.8 + Math.random() * 0.4) // Random speed variation
+                // Spawn a vehicle in a lane
+                game.spawnVehicle = function(lane, isInitial = false) {
+                    const vehicleHeight = game.state.laneHeight * 0.6;
+                    const vehicleWidth = vehicleHeight * (Math.random() * 1.5 + 1.5); // Random length
+                    
+                    let x;
+                    if (isInitial) {
+                        // For initial placement, put vehicles at random positions
+                        x = Math.random() * game.canvas.width;
+                    } else {
+                        // For new spawns, start offscreen
+                        x = lane.direction > 0 ? -vehicleWidth : game.canvas.width;
+                    }
+                    
+                    const vehicle = {
+                        x: x,
+                        y: lane.y - vehicleHeight / 2,
+                        width: vehicleWidth,
+                        height: vehicleHeight,
+                        color: game.getRandomCarColor()
                     };
                     
-                    gameState.lanes.push(lane);
-                    
-                    // Pre-populate lanes with some vehicles
-                    const vehicleCount = Math.floor(Math.random() * 2) + 1;
-                    for (let j = 0; j < vehicleCount; j++) {
-                        spawnVehicle(lane, true);
-                    }
-                }
-            }
-            
-            // Spawn a vehicle in a lane
-            function spawnVehicle(lane, isInitial = false) {
-                const vehicleHeight = gameState.laneHeight * 0.6;
-                const vehicleWidth = vehicleHeight * (Math.random() * 1.5 + 1.5); // Random length
-                
-                let x;
-                if (isInitial) {
-                    // For initial placement, put vehicles at random positions
-                    x = Math.random() * canvas.width;
-                } else {
-                    // For new spawns, start offscreen
-                    x = lane.direction > 0 ? -vehicleWidth : canvas.width;
-                }
-                
-                const vehicle = {
-                    x: x,
-                    y: lane.y - vehicleHeight / 2,
-                    width: vehicleWidth,
-                    height: vehicleHeight,
-                    color: getRandomCarColor()
+                    lane.vehicles.push(vehicle);
+                    lane.lastSpawnTime = Date.now();
                 };
                 
-                lane.vehicles.push(vehicle);
-                lane.lastSpawnTime = Date.now();
-            }
-            
-            // Get random car color
-            function getRandomCarColor() {
-                const colors = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3', '#33FFF3', '#E67E22', '#9B59B6'];
-                return colors[Math.floor(Math.random() * colors.length)];
-            }
-            
-            // Update game state
-            function update() {
-                if (!gameState.playing) return;
+                // Get random car color
+                game.getRandomCarColor = function() {
+                    const colors = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3', '#33FFF3', '#E67E22', '#9B59B6'];
+                    return colors[Math.floor(Math.random() * colors.length)];
+                };
+                
+                // Initialize/reset game
+                game.initGame = function(level = 1) {
+                    console.log("Initializing game at level", level);
+                    
+                    // Reset game state
+                    game.state.initialized = true;
+                    game.state.level = level;
+                    game.state.playing = true;
+                    game.state.levelComplete = false;
+                    
+                    // Reset lives if starting from level 1
+                    if (level === 1) {
+                        game.state.lives = 3;
+                        game.state.score = 0;
+                    }
+                    
+                    // Hide UI elements
+                    game.gameOverScreen.classList.add('hidden');
+                    game.levelCompleteScreen.classList.add('hidden');
+                    
+                    // Update UI displays
+                    game.levelDisplay.textContent = `Level: ${game.state.level}`;
+                    game.livesDisplay.textContent = `Lives: ${game.state.lives}`;
+                    
+                    // Set lane dimensions
+                    game.state.laneHeight = game.canvas.height / 8; // 6 lanes + start + finish areas
+                    
+                    // Create frog
+                    const frogSize = game.state.laneHeight * 0.7;
+                    game.state.frog = {
+                        x: game.canvas.width / 2 - frogSize / 2,
+                        y: game.canvas.height - game.state.laneHeight / 2 - frogSize / 2,
+                        width: frogSize,
+                        height: frogSize,
+                        lane: 0,
+                        jumping: false,
+                        jumpHeight: 0,
+                        jumpDirection: 1
+                    };
+                    
+                    // Set car speed based on level (pixels per frame)
+                    game.state.baseCarSpeed = 1 + (game.state.level - 1) * 0.75;
+                    game.state.spawnMultiplier = 1 - (game.state.level - 1) * 0.1; // Decrease spawn delay with level
+                    
+                    // Initialize lanes with cars
+                    game.initLanes();
+                    
+                    // Start game loop if not already running
+                    if (!game.loopRunning) {
+                        game.loopRunning = true;
+                        game.gameLoop();
+                    }
+                };
+                
+                // Update game state
+                game.update = function() {
+                    if (!game.state.playing) return;
+                    
+                    // Update frog jump animation
+                    game.updateFrogJump();
+                    
+                    // Update vehicles
+                    game.updateVehicles();
+                    
+                    // Check collisions
+                    game.checkCollisions();
+                    
+                    // Check if level complete (frog reached top)
+                    if (game.state.frog.lane >= game.state.laneCount + 1 && !game.state.frog.jumping) {
+                        game.levelComplete();
+                    }
+                };
                 
                 // Update frog jump animation
-                updateFrogJump();
-                
-                // Update vehicles
-                updateVehicles();
-                
-                // Check collisions
-                checkCollisions();
-                
-                // Check if level complete (frog reached top)
-                if (gameState.frog.lane >= gameState.laneCount + 1 && !gameState.frog.jumping) {
-                    levelComplete();
-                }
-            }
-            
-            // Update frog jump animation
-            function updateFrogJump() {
-                if (gameState.frog.jumping) {
-                    gameState.frog.jumpHeight += 2 * gameState.frog.jumpDirection;
-                    
-                    if (gameState.frog.jumpHeight >= 10) {
-                        gameState.frog.jumpDirection = -1;
+                game.updateFrogJump = function() {
+                    if (game.state.frog.jumping) {
+                        game.state.frog.jumpHeight += 2 * game.state.frog.jumpDirection;
+                        
+                        if (game.state.frog.jumpHeight >= 10) {
+                            game.state.frog.jumpDirection = -1;
+                        }
+                        
+                        if (game.state.frog.jumpHeight <= 0) {
+                            game.state.frog.jumping = false;
+                            game.state.frog.jumpHeight = 0;
+                            game.state.frog.jumpDirection = 1;
+                        }
                     }
-                    
-                    if (gameState.frog.jumpHeight <= 0) {
-                        gameState.frog.jumping = false;
-                        gameState.frog.jumpHeight = 0;
-                        gameState.frog.jumpDirection = 1;
-                    }
-                }
-            }
-            
-            // Update vehicle positions and spawn new ones
-            function updateVehicles() {
-                const now = Date.now();
+                };
                 
-                gameState.lanes.forEach(lane => {
-                    // Move existing vehicles
-                    lane.vehicles.forEach(vehicle => {
-                        vehicle.x += lane.direction * lane.speed;
+                // Update vehicle positions and spawn new ones
+                game.updateVehicles = function() {
+                    const now = Date.now();
+                    
+                    game.state.lanes.forEach(lane => {
+                        // Move existing vehicles
+                        lane.vehicles.forEach(vehicle => {
+                            vehicle.x += lane.direction * lane.speed;
+                        });
+                        
+                        // Remove vehicles that are out of bounds
+                        lane.vehicles = lane.vehicles.filter(vehicle => {
+                            if (lane.direction > 0) {
+                                return vehicle.x < game.canvas.width + 100; // Allow some buffer
+                            } else {
+                                return vehicle.x > -vehicle.width - 100; // Allow some buffer
+                            }
+                        });
+                        
+                        // Spawn new vehicles
+                        if (now - lane.lastSpawnTime > lane.spawnDelay) {
+                            game.spawnVehicle(lane);
+                            // Reset spawn delay (doubled for fewer cars)
+                            lane.spawnDelay = (Math.random() * 3000 + 4000) * game.state.spawnMultiplier;
+                        }
                     });
+                };
+                
+                // Check for collisions between frog and vehicles
+                game.checkCollisions = function() {
+                    if (game.state.frog.lane === 0 || game.state.frog.lane > game.state.laneCount || game.state.frog.jumping) {
+                        // Frog is in start or finish area, or is jumping - no collisions possible
+                        return;
+                    }
                     
-                    // Remove vehicles that are out of bounds
-                    lane.vehicles = lane.vehicles.filter(vehicle => {
-                        if (lane.direction > 0) {
-                            return vehicle.x < canvas.width + 100; // Allow some buffer
-                        } else {
-                            return vehicle.x > -vehicle.width - 100; // Allow some buffer
+                    const currentLane = game.state.lanes[game.state.laneCount - game.state.frog.lane];
+                    let collision = false;
+                    
+                    currentLane.vehicles.forEach(vehicle => {
+                        if (
+                            game.state.frog.x < vehicle.x + vehicle.width &&
+                            game.state.frog.x + game.state.frog.width > vehicle.x &&
+                            game.state.frog.y < vehicle.y + vehicle.height &&
+                            game.state.frog.y + game.state.frog.height > vehicle.y
+                        ) {
+                            collision = true;
                         }
                     });
                     
-                    // Spawn new vehicles
-                    if (now - lane.lastSpawnTime > lane.spawnDelay) {
-                        spawnVehicle(lane);
-                        // Reset spawn delay (random, but gets shorter with higher levels)
-                        lane.spawnDelay = (Math.random() * 1500 + 2000) * gameState.spawnMultiplier;
+                    if (collision) {
+                        game.frogHit();
                     }
-                });
-            }
-            
-            // Check for collisions between frog and vehicles
-            function checkCollisions() {
-                if (gameState.frog.lane === 0 || gameState.frog.lane > gameState.laneCount || gameState.frog.jumping) {
-                    // Frog is in start or finish area, or is jumping - no collisions possible
-                    return;
-                }
+                };
                 
-                const currentLane = gameState.lanes[gameState.laneCount - gameState.frog.lane];
-                let collision = false;
-                
-                currentLane.vehicles.forEach(vehicle => {
-                    if (
-                        gameState.frog.x < vehicle.x + vehicle.width &&
-                        gameState.frog.x + gameState.frog.width > vehicle.x &&
-                        gameState.frog.y < vehicle.y + vehicle.height &&
-                        gameState.frog.y + gameState.frog.height > vehicle.y
-                    ) {
-                        collision = true;
+                // Frog gets hit
+                game.frogHit = function() {
+                    // Play squish sound
+                    game.beep(200, 200, 0.3);
+                    game.beep(150, 300, 0.3);
+                    
+                    game.state.lives--;
+                    game.livesDisplay.textContent = `Lives: ${game.state.lives}`;
+                    
+                    if (game.state.lives <= 0) {
+                        game.gameOver();
+                    } else {
+                        // Reset frog position
+                        game.state.frog.x = game.canvas.width / 2 - game.state.frog.width / 2;
+                        game.state.frog.y = game.canvas.height - game.state.laneHeight / 2 - game.state.frog.height / 2;
+                        game.state.frog.lane = 0;
                     }
-                });
+                };
                 
-                if (collision) {
-                    frogHit();
-                }
-            }
-            
-            // Frog gets hit
-            function frogHit() {
-                // Play squish sound
-                beep(200, 200, 0.3);
-                beep(150, 300, 0.3);
+                // Game over
+                game.gameOver = function() {
+                    game.state.playing = false;
+                    game.gameOverScreen.classList.remove('hidden');
+                    game.beep(300, 100, 0.3);
+                    game.beep(250, 100, 0.3);
+                    game.beep(200, 100, 0.3);
+                    game.beep(150, 300, 0.3);
+                };
                 
-                gameState.lives--;
-                livesDisplay.textContent = `Lives: ${gameState.lives}`;
+                // Level complete
+                game.levelComplete = function() {
+                    game.state.playing = false;
+                    game.state.levelComplete = true;
+                    game.state.score += game.state.level * 100 + game.state.lives * 50;
+                    
+                    // Play success sound
+                    game.beep(523.25, 100, 0.3); // C5
+                    game.beep(659.25, 100, 0.3); // E5
+                    game.beep(783.99, 100, 0.3); // G5
+                    game.beep(1046.50, 300, 0.3); // C6
+                    
+                    if (game.state.level === game.state.maxLevel) {
+                        // Player beat the final level
+                        game.gameOverScreen.querySelector('h2').textContent = 'You Win!';
+                        game.gameOverScreen.querySelector('p').textContent = `Final Score: ${game.state.score}`;
+                        game.gameOverScreen.classList.remove('hidden');
+                    } else {
+                        game.levelCompleteScreen.classList.remove('hidden');
+                    }
+                };
                 
-                if (gameState.lives <= 0) {
-                    gameOver();
-                } else {
-                    // Reset frog position
-                    gameState.frog.x = canvas.width / 2 - gameState.frog.width / 2;
-                    gameState.frog.y = canvas.height - gameState.laneHeight / 2 - gameState.frog.height / 2;
-                    gameState.frog.lane = 0;
-                }
-            }
-            
-            // Game over
-            function gameOver() {
-                gameState.playing = false;
-                gameOverScreen.classList.remove('hidden');
-                beep(300, 100, 0.3);
-                beep(250, 100, 0.3);
-                beep(200, 100, 0.3);
-                beep(150, 300, 0.3);
-            }
-            
-            // Level complete
-            function levelComplete() {
-                gameState.playing = false;
-                gameState.levelComplete = true;
-                gameState.score += gameState.level * 100 + gameState.lives * 50;
+                // Draw game elements
+                game.draw = function() {
+                    // Clear canvas
+                    game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
+                    
+                    // Draw background
+                    game.drawBackground();
+                    
+                    // Draw vehicles
+                    game.drawVehicles();
+                    
+                    // Draw frog
+                    game.drawFrog();
+                    
+                    // Draw score
+                    game.drawScore();
+                };
                 
-                // Play success sound
-                beep(523.25, 100, 0.3); // C5
-                beep(659.25, 100, 0.3); // E5
-                beep(783.99, 100, 0.3); // G5
-                beep(1046.50, 300, 0.3); // C6
-                
-                if (gameState.level === gameState.maxLevel) {
-                    // Player beat the final level
-                    gameOverScreen.querySelector('h2').textContent = 'You Win!';
-                    gameOverScreen.querySelector('p').textContent = `Final Score: ${gameState.score}`;
-                    gameOverScreen.classList.remove('hidden');
-                } else {
-                    levelCompleteScreen.classList.remove('hidden');
-                }
-            }
-            
-            // Draw game elements
-            function draw() {
-                // Clear canvas
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw background
-                drawBackground();
+                // Draw game background
+                game.drawBackground = function() {
+                    // Draw start area (bottom)
+                    game.ctx.fillStyle = '#4CAF50';
+                    game.ctx.fillRect(0, game.canvas.height - game.state.laneHeight, game.canvas.width, game.state.laneHeight);
+                    
+                    // Draw finish area (top)
+                    game.ctx.fillStyle = '#4CAF50';
+                    game.ctx.fillRect(0, 0, game.canvas.width, game.state.laneHeight);
+                    
+                    // Draw lanes
+                    for (let i = 0; i < game.state.laneCount; i++) {
+                        // Alternate lane colors for better visibility
+                        game.ctx.fillStyle = i % 2 === 0 ? '#888' : '#666';
+                        game.ctx.fillRect(
+                            0, 
+                            game.state.laneHeight * (i + 1), 
+                            game.canvas.width, 
+                            game.state.laneHeight
+                        );
+                        
+                        // Draw lane markings
+                        game.ctx.strokeStyle = '#FFF';
+                        game.ctx.setLineDash([20, 20]); // Dashed line
+                        game.ctx.beginPath();
+                        game.ctx.moveTo(0, game.state.laneHeight * (i + 1));
+                        game.ctx.lineTo(game.canvas.width, game.state.laneHeight * (i + 1));
+                        game.ctx.stroke();
+                        game.ctx.setLineDash([]); // Reset to solid line
+                    }
+                };
                 
                 // Draw vehicles
-                drawVehicles();
+                game.drawVehicles = function() {
+                    game.state.lanes.forEach(lane => {
+                        lane.vehicles.forEach(vehicle => {
+                            // Draw vehicle body
+                            game.ctx.fillStyle = vehicle.color;
+                            game.ctx.fillRect(vehicle.x, vehicle.y, vehicle.width, vehicle.height);
+                            
+                            // Draw vehicle details (windows, lights)
+                            game.ctx.fillStyle = '#222';
+                            
+                            // Front & back windows
+                            const windowWidth = vehicle.width * 0.15;
+                            const windowHeight = vehicle.height * 0.6;
+                            const windowY = vehicle.y + (vehicle.height - windowHeight) / 2;
+                            
+                            // Front window
+                            if (lane.direction > 0) {
+                                game.ctx.fillRect(
+                                    vehicle.x + vehicle.width - windowWidth - 5, 
+                                    windowY, 
+                                    windowWidth, 
+                                    windowHeight
+                                );
+                            } else {
+                                game.ctx.fillRect(
+                                    vehicle.x + 5, 
+                                    windowY, 
+                                    windowWidth, 
+                                    windowHeight
+                                );
+                            }
+                            
+                            // Headlights
+                            const lightSize = vehicle.height * 0.2;
+                            const lightY = vehicle.y + (vehicle.height - lightSize) / 2;
+                            
+                            // Front headlight (white)
+                            game.ctx.fillStyle = '#FFF';
+                            if (lane.direction > 0) {
+                                game.ctx.fillRect(
+                                    vehicle.x + vehicle.width - lightSize / 2, 
+                                    lightY, 
+                                    lightSize / 2, 
+                                    lightSize
+                                );
+                            } else {
+                                game.ctx.fillRect(
+                                    vehicle.x, 
+                                    lightY, 
+                                    lightSize / 2, 
+                                    lightSize
+                                );
+                            }
+                            
+                            // Back headlight (red)
+                            game.ctx.fillStyle = '#F00';
+                            if (lane.direction > 0) {
+                                game.ctx.fillRect(
+                                    vehicle.x, 
+                                    lightY, 
+                                    lightSize / 2, 
+                                    lightSize
+                                );
+                            } else {
+                                game.ctx.fillRect(
+                                    vehicle.x + vehicle.width - lightSize / 2, 
+                                    lightY, 
+                                    lightSize / 2, 
+                                    lightSize
+                                );
+                            }
+                        });
+                    });
+                };
                 
                 // Draw frog
-                drawFrog();
+                game.drawFrog = function() {
+                    // Apply jump offset if jumping
+                    const jumpOffset = game.state.frog.jumping ? -game.state.frog.jumpHeight : 0;
+                    
+                    // Body
+                    game.ctx.fillStyle = '#0F0'; // Bright green
+                    game.ctx.beginPath();
+                    game.ctx.ellipse(
+                        game.state.frog.x + game.state.frog.width / 2,
+                        game.state.frog.y + game.state.frog.height / 2 + jumpOffset,
+                        game.state.frog.width / 2,
+                        game.state.frog.height / 2,
+                        0, 0, Math.PI * 2
+                    );
+                    game.ctx.fill();
+                    
+                    // Eyes
+                    const eyeSize = game.state.frog.width * 0.2;
+                    const eyeY = game.state.frog.y + game.state.frog.height * 0.3 + jumpOffset;
+                    
+                    game.ctx.fillStyle = '#FFF';
+                    // Left eye
+                    game.ctx.beginPath();
+                    game.ctx.arc(
+                        game.state.frog.x + game.state.frog.width * 0.3,
+                        eyeY,
+                        eyeSize,
+                        0, Math.PI * 2
+                    );
+                    game.ctx.fill();
+                    
+                    // Right eye
+                    game.ctx.beginPath();
+                    game.ctx.arc(
+                        game.state.frog.x + game.state.frog.width * 0.7,
+                        eyeY,
+                        eyeSize,
+                        0, Math.PI * 2
+                    );
+                    game.ctx.fill();
+                    
+                    // Pupils
+                    game.ctx.fillStyle = '#000';
+                    // Left pupil
+                    game.ctx.beginPath();
+                    game.ctx.arc(
+                        game.state.frog.x + game.state.frog.width * 0.3,
+                        eyeY,
+                        eyeSize * 0.5,
+                        0, Math.PI * 2
+                    );
+                    game.ctx.fill();
+                    
+                    // Right pupil
+                    game.ctx.beginPath();
+                    game.ctx.arc(
+                        game.state.frog.x + game.state.frog.width * 0.7,
+                        eyeY,
+                        eyeSize * 0.5,
+                        0, Math.PI * 2
+                    );
+                    game.ctx.fill();
+                };
                 
                 // Draw score
-                drawScore();
-            }
-            
-            // Draw game background
-            function drawBackground() {
-                // Draw start area (bottom)
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillRect(0, canvas.height - gameState.laneHeight, canvas.width, gameState.laneHeight);
+                game.drawScore = function() {
+                    if (game.state.score > 0) {
+                        game.ctx.fillStyle = 'white';
+                        game.ctx.font = '16px Arial';
+                        game.ctx.textAlign = 'right';
+                        game.ctx.fillText(`Score: ${game.state.score}`, game.canvas.width - 10, 25);
+                    }
+                };
                 
-                // Draw finish area (top)
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillRect(0, 0, canvas.width, gameState.laneHeight);
+                // Game loop
+                game.gameLoop = function() {
+                    game.update();
+                    game.draw();
+                    requestAnimationFrame(game.gameLoop);
+                };
                 
-                // Draw lanes
-                for (let i = 0; i < gameState.laneCount; i++) {
-                    // Alternate lane colors for better visibility
-                    ctx.fillStyle = i % 2 === 0 ? '#888' : '#666';
-                    ctx.fillRect(
-                        0, 
-                        gameState.laneHeight * (i + 1), 
-                        canvas.width, 
-                        gameState.laneHeight
-                    );
+                // Handle mouse clicks
+                game.handleClick = function(event) {
+                    if (!game.state.playing) return;
                     
-                    // Draw lane markings
-                    ctx.strokeStyle = '#FFF';
-                    ctx.setLineDash([20, 20]); // Dashed line
-                    ctx.beginPath();
-                    ctx.moveTo(0, gameState.laneHeight * (i + 1));
-                    ctx.lineTo(canvas.width, gameState.laneHeight * (i + 1));
-                    ctx.stroke();
-                    ctx.setLineDash([]); // Reset to solid line
-                }
-            }
-            
-            // Draw vehicles
-            function drawVehicles() {
-                gameState.lanes.forEach(lane => {
-                    lane.vehicles.forEach(vehicle => {
-                        // Draw vehicle body
-                        ctx.fillStyle = vehicle.color;
-                        ctx.fillRect(vehicle.x, vehicle.y, vehicle.width, vehicle.height);
-                        
-                        // Draw vehicle details (windows, lights)
-                        ctx.fillStyle = '#222';
-                        
-                        // Front & back windows
-                        const windowWidth = vehicle.width * 0.15;
-                        const windowHeight = vehicle.height * 0.6;
-                        const windowY = vehicle.y + (vehicle.height - windowHeight) / 2;
-                        
-                        // Front window
-                        if (lane.direction > 0) {
-                            ctx.fillRect(
-                                vehicle.x + vehicle.width - windowWidth - 5, 
-                                windowY, 
-                                windowWidth, 
-                                windowHeight
-                            );
-                        } else {
-                            ctx.fillRect(
-                                vehicle.x + 5, 
-                                windowY, 
-                                windowWidth, 
-                                windowHeight
-                            );
+                    // Get click coordinates relative to canvas
+                    const rect = game.canvas.getBoundingClientRect();
+                    const clickX = event.clientX - rect.left;
+                    const clickY = event.clientY - rect.top;
+                    
+                    // Check if click is on left, right, or forward of frog
+                    const frogCenterX = game.state.frog.x + game.state.frog.width / 2;
+                    
+                    if (clickY < game.state.frog.y) {
+                        // Click is above the frog, move forward
+                        game.moveForward();
+                    } else if (clickX < frogCenterX) {
+                        // Click is to left of frog, move left
+                        game.moveLeft();
+                    } else {
+                        // Click is to right of frog, move right
+                        game.moveRight();
+                    }
+                };
+                
+                // Handle touch events
+                game.handleTouch = function(event) {
+                    event.preventDefault(); // Prevent scrolling
+                    
+                    if (!game.state.playing) return;
+                    
+                    // Get touch coordinates relative to canvas
+                    const rect = game.canvas.getBoundingClientRect();
+                    const touchX = event.touches[0].clientX - rect.left;
+                    const touchY = event.touches[0].clientY - rect.top;
+                    
+                    // Check if touch is on left, right, or forward of frog
+                    const frogCenterX = game.state.frog.x + game.state.frog.width / 2;
+                    
+                    if (touchY < game.state.frog.y) {
+                        // Touch is above the frog, move forward
+                        game.moveForward();
+                    } else if (touchX < frogCenterX) {
+                        // Touch is to left of frog, move left
+                        game.moveLeft();
+                    } else {
+                        // Touch is to right of frog, move right
+                        game.moveRight();
+                    }
+                };
+                
+                // Move frog left
+                game.moveLeft = function() {
+                    if (game.state.frog.jumping) return; // Prevent movement while jumping
+                    
+                    if (game.state.frog.x > 0) {
+                        game.state.frog.x -= game.state.frog.width;
+                        // Make sure frog stays within bounds
+                        if (game.state.frog.x < 0) {
+                            game.state.frog.x = 0;
                         }
                         
-                        // Headlights
-                        const lightSize = vehicle.height * 0.2;
-                        const lightY = vehicle.y + (vehicle.height - lightSize) / 2;
-                        
-                        // Front headlight (white)
-                        ctx.fillStyle = '#FFF';
-                        if (lane.direction > 0) {
-                            ctx.fillRect(
-                                vehicle.x + vehicle.width - lightSize / 2, 
-                                lightY, 
-                                lightSize / 2, 
-                                lightSize
-                            );
-                        } else {
-                            ctx.fillRect(
-                                vehicle.x, 
-                                lightY, 
-                                lightSize / 2, 
-                                lightSize
-                            );
+                        // Play hop sound
+                        game.beep(600, 50, 0.2);
+                    }
+                };
+                
+                // Move frog right
+                game.moveRight = function() {
+                    if (game.state.frog.jumping) return; // Prevent movement while jumping
+                    
+                    if (game.state.frog.x + game.state.frog.width < game.canvas.width) {
+                        game.state.frog.x += game.state.frog.width;
+                        // Make sure frog stays within bounds
+                        if (game.state.frog.x + game.state.frog.width > game.canvas.width) {
+                            game.state.frog.x = game.canvas.width - game.state.frog.width;
                         }
                         
-                        // Back headlight (red)
-                        ctx.fillStyle = '#F00';
-                        if (lane.direction > 0) {
-                            ctx.fillRect(
-                                vehicle.x, 
-                                lightY, 
-                                lightSize / 2, 
-                                lightSize
-                            );
-                        } else {
-                            ctx.fillRect(
-                                vehicle.x + vehicle.width - lightSize / 2, 
-                                lightY, 
-                                lightSize / 2, 
-                                lightSize
-                            );
+                        // Play hop sound
+                        game.beep(600, 50, 0.2);
+                    }
+                };
+                
+                // Move frog forward
+                game.moveForward = function() {
+                    if (game.state.frog.jumping) return; // Prevent movement while jumping
+                    
+                    game.state.frog.jumping = true;
+                    game.state.frog.jumpHeight = 0;
+                    game.state.frog.jumpDirection = 1;
+                    
+                    // Play hop sound
+                    game.beep(800, 100, 0.2);
+                    
+                    setTimeout(() => {
+                        game.state.frog.y -= game.state.laneHeight;
+                        game.state.frog.lane += 1;
+                        
+                        // Make sure frog stays within bounds
+                        if (game.state.frog.y < 0) {
+                            game.state.frog.y = 0;
                         }
+                    }, 150);
+                };
+                
+                // Setup event listeners
+                game.setupEventListeners = function() {
+                    console.log("Setting up event listeners");
+                    
+                    // Game interaction events
+                    game.canvas.addEventListener('click', game.handleClick);
+                    game.canvas.addEventListener('touchstart', game.handleTouch, { passive: false });
+                    
+                    // Start game button
+                    game.startButton.addEventListener('click', function() {
+                        console.log("Start button clicked");
+                        
+                        // Try to resume audio context
+                        if (game.audioCtx.state === 'suspended') {
+                            game.audioCtx.resume().catch(err => console.error("Audio resume error:", err));
+                        }
+                        
+                        game.instructionsScreen.classList.add('hidden');
+                        game.initGame(1);
                     });
-                });
-            }
-            
-            // Draw frog
-            function drawFrog() {
-                // Apply jump offset if jumping
-                const jumpOffset = gameState.frog.jumping ? -gameState.frog.jumpHeight : 0;
-                
-                // Body
-                ctx.fillStyle = '#0F0'; // Bright green
-                ctx.beginPath();
-                ctx.ellipse(
-                    gameState.frog.x + gameState.frog.width / 2,
-                    gameState.frog.y + gameState.frog.height / 2 + jumpOffset,
-                    gameState.frog.width / 2,
-                    gameState.frog.height / 2,
-                    0, 0, Math.PI * 2
-                );
-                ctx.fill();
-                
-                // Eyes
-                const eyeSize = gameState.frog.width * 0.2;
-                const eyeY = gameState.frog.y + gameState.frog.height * 0.3 + jumpOffset;
-                
-                ctx.fillStyle = '#FFF';
-                // Left eye
-                ctx.beginPath();
-                ctx.arc(
-                    gameState.frog.x + gameState.frog.width * 0.3,
-                    eyeY,
-                    eyeSize,
-                    0, Math.PI * 2
-                );
-                ctx.fill();
-                
-                // Right eye
-                ctx.beginPath();
-                ctx.arc(
-                    gameState.frog.x + gameState.frog.width * 0.7,
-                    eyeY,
-                    eyeSize,
-                    0, Math.PI * 2
-                );
-                ctx.fill();
-                
-                // Pupils
-                ctx.fillStyle = '#000';
-                // Left pupil
-                ctx.beginPath();
-                ctx.arc(
-                    gameState.frog.x + gameState.frog.width * 0.3,
-                    eyeY,
-                    eyeSize * 0.5,
-                    0, Math.PI * 2
-                );
-                ctx.fill();
-                
-                // Right pupil
-                ctx.beginPath();
-                ctx.arc(
-                    gameState.frog.x + gameState.frog.width * 0.7,
-                    eyeY,
-                    eyeSize * 0.5,
-                    0, Math.PI * 2
-                );
-                ctx.fill();
-            }
-            
-            // Draw score
-            function drawScore() {
-                if (gameState.score > 0) {
-                    ctx.fillStyle = 'white';
-                    ctx.font = '16px Arial';
-                    ctx.textAlign = 'right';
-                    ctx.fillText(`Score: ${gameState.score}`, canvas.width - 10, 25);
-                }
-            }
-            
-            // Game loop flag
-            let gameLoopRunning = false;
-            
-            // Game loop
-            function gameLoop() {
-                update();
-                draw();
-                requestAnimationFrame(gameLoop);
-            }
-            
-            // Handle mouse clicks and touch events
-            function handleClick(event) {
-                if (!gameState.playing) return;
-                
-                // Get click coordinates relative to canvas
-                const rect = canvas.getBoundingClientRect();
-                const clickX = event.clientX - rect.left;
-                const clickY = event.clientY - rect.top;
-                
-                // Check if click is on left, right, or forward of frog
-                const frogCenterX = gameState.frog.x + gameState.frog.width / 2;
-                
-                if (clickY < gameState.frog.y) {
-                    // Click is above the frog, move forward
-                    moveForward();
-                } else if (clickX < frogCenterX) {
-                    // Click is to left of frog, move left
-                    moveLeft();
-                } else {
-                    // Click is to right of frog, move right
-                    moveRight();
-                }
-            }
-            
-            // Handle touch events
-            function handleTouch(event) {
-                event.preventDefault(); // Prevent scrolling
-                
-                if (!gameState.playing) return;
-                
-                // Get touch coordinates relative to canvas
-                const rect = canvas.getBoundingClientRect();
-                const touchX = event.touches[0].clientX - rect.left;
-                const touchY = event.touches[0].clientY - rect.top;
-                
-                // Check if touch is on left, right, or forward of frog
-                const frogCenterX = gameState.frog.x + gameState.frog.width / 2;
-                
-                if (touchY < gameState.frog.y) {
-                    // Touch is above the frog, move forward
-                    moveForward();
-                } else if (touchX < frogCenterX) {
-                    // Touch is to left of frog, move left
-                    moveLeft();
-                } else {
-                    // Touch is to right of frog, move right
-                    moveRight();
-                }
-            }
-            
-            // Move frog left
-            function moveLeft() {
-                if (gameState.frog.jumping) return; // Prevent movement while jumping
-                
-                if (gameState.frog.x > 0) {
-                    gameState.frog.x -= gameState.frog.width;
-                    // Make sure frog stays within bounds
-                    if (gameState.frog.x < 0) {
-                        gameState.frog.x = 0;
-                    }
                     
-                    // Play hop sound
-                    beep(600, 50, 0.2);
-                }
-            }
-            
-            // Move frog right
-            function moveRight() {
-                if (gameState.frog.jumping) return; // Prevent movement while jumping
-                
-                if (gameState.frog.x + gameState.frog.width < canvas.width) {
-                    gameState.frog.x += gameState.frog.width;
-                    // Make sure frog stays within bounds
-                    if (gameState.frog.x + gameState.frog.width > canvas.width) {
-                        gameState.frog.x = canvas.width - gameState.frog.width;
-                    }
+                    // Restart button
+                    game.restartButton.addEventListener('click', function() {
+                        console.log("Restart button clicked");
+                        
+                        // Try to resume audio context
+                        if (game.audioCtx.state === 'suspended') {
+                            game.audioCtx.resume().catch(err => console.error("Audio resume error:", err));
+                        }
+                        
+                        game.gameOverScreen.classList.add('hidden');
+                        game.initGame(1); // Restart from level 1
+                    });
                     
-                    // Play hop sound
-                    beep(600, 50, 0.2);
-                }
-            }
-            
-            // Move frog forward
-            function moveForward() {
-                if (gameState.frog.jumping) return; // Prevent movement while jumping
-                
-                gameState.frog.jumping = true;
-                gameState.frog.jumpHeight = 0;
-                gameState.frog.jumpDirection = 1;
-                
-                // Play hop sound
-                beep(800, 100, 0.2);
-                
-                setTimeout(() => {
-                    gameState.frog.y -= gameState.laneHeight;
-                    gameState.frog.lane += 1;
+                    // Next level button
+                    game.nextLevelButton.addEventListener('click', function() {
+                        console.log("Next level button clicked");
+                        
+                        // Try to resume audio context
+                        if (game.audioCtx.state === 'suspended') {
+                            game.audioCtx.resume().catch(err => console.error("Audio resume error:", err));
+                        }
+                        
+                        game.levelCompleteScreen.classList.add('hidden');
+                        game.initGame(game.state.level + 1); // Start next level
+                    });
                     
-                    // Make sure frog stays within bounds
-                    if (gameState.frog.y < 0) {
-                        gameState.frog.y = 0;
-                    }
-                }, 150);
-            }
+                    // Window resize event
+                    window.addEventListener('resize', game.resizeCanvas);
+                };
+                
+                // Initialize the game
+                game.init = function() {
+                    console.log("Game initialization started");
+                    
+                    // Setup audio
+                    game.setupAudio();
+                    
+                    // Set initial canvas size
+                    game.resizeCanvas();
+                    
+                    // Setup event listeners
+                    game.setupEventListeners();
+                    
+                    console.log("Game initialization completed");
+                };
+                
+                // Return the game object
+                return game;
+            })();
             
-            console.log("Game initialization complete and ready to play!");
+            // Start the game
+            Game.init();
         };
     </script>
 </body>
