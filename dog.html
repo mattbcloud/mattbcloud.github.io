@@ -731,9 +731,9 @@
             const dogHeight = 40 + 20; // Match the dog's body + head height
             
             // Position the catch area to cover the dog and its head
-            catchArea.style.width = `${dogWidth + 20}px`;  // Slightly wider
-            catchArea.style.height = `${dogHeight + 10}px`; // Slightly taller
-            catchArea.style.left = `${dogLeft - (dogWidth / 2) - 10}px`; 
+            catchArea.style.width = `${dogWidth}px`;  // Match dog width exactly
+            catchArea.style.height = `${dogHeight}px`; // Match dog height exactly
+            catchArea.style.left = `${dogLeft - (dogWidth / 2)}px`; 
             catchArea.style.bottom = `${window.innerHeight * 0.2}px`;
         }
         
@@ -971,23 +971,24 @@
             const frisbeeCenterX = frisbeeX;
             const frisbeeCenterY = frisbeeY;
             
-            // For Chrome on Android, use a more reliable calculation based on the dog's position
+            // For Chrome on Android, use position-based collision detection with tighter margins
             if (isChromeOnAndroid) {
-                // Get dog's position from its style (more reliable than getBoundingClientRect in Chrome Android)
+                // Get dog's position from its style
                 const dogLeft = parseFloat(dog.style.left) || 0;
                 const dogWidth = 50; // Width from CSS
                 const dogHeight = 60; // Body + head height (approximated)
                 
-                // Define catch area with extra margin for Chrome on Android
-                const catchMargin = 20; // Larger catch margin for mobile usability
-                
                 // Calculate dog position relative to its center point (accounting for translateX(-50%))
-                const dogLeftEdge = dogLeft - (dogWidth / 2) - catchMargin;
-                const dogRightEdge = dogLeft + (dogWidth / 2) + catchMargin;
-                const dogTopEdge = window.innerHeight - window.innerHeight * 0.2 - dogHeight - catchMargin;
-                const dogBottomEdge = window.innerHeight - window.innerHeight * 0.2 + catchMargin;
+                const dogLeftEdge = dogLeft - (dogWidth / 2);
+                const dogRightEdge = dogLeft + (dogWidth / 2);
                 
-                // Check if frisbee is within the catch area
+                // The top of the dog's head is approximately at dogY - dogHeight
+                const groundLevel = window.innerHeight - window.innerHeight * 0.2;
+                const dogTopEdge = groundLevel - dogHeight;
+                const dogBottomEdge = groundLevel;
+                
+                // Check if frisbee overlaps with the dog with no extra margin
+                // This makes the catch area match the dog's visual appearance exactly
                 if (frisbeeCenterX > dogLeftEdge && 
                     frisbeeCenterX < dogRightEdge && 
                     frisbeeCenterY > dogTopEdge && 
@@ -1007,8 +1008,8 @@
                 const dogTop = Math.min(dogRect.top, dogHeadRect.top); 
                 const dogBottom = dogRect.bottom;
                 
-                // Small margin for usability
-                const catchMargin = 10;
+                // Very small margin for usability (3px)
+                const catchMargin = 3;
                 
                 // Check if frisbee overlaps with dog
                 if (frisbeeCenterX + catchMargin > dogLeft && 
