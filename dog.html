@@ -934,16 +934,25 @@
             const frisbeeCenterX = frisbeeX;
             const frisbeeCenterY = frisbeeY;
             
-            // Check if dog catches frisbee
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const catchAreaSize = isMobile ? 35 : 25;
+            // Get dog element dimensions and position
+            const dogRect = dog.getBoundingClientRect();
+            const dogHeadRect = document.getElementById('dog-head').getBoundingClientRect();
             
-            const dogLeft = dogX - catchAreaSize;
-            const dogRight = dogX + catchAreaSize;
-            const dogTop = dogY - 40 - (isMobile ? 10 : 0);
+            // Use dog's actual dimensions for more precise collision detection
+            const dogLeft = dogRect.left;
+            const dogRight = dogRect.right;
+            const dogTop = Math.min(dogRect.top, dogHeadRect.top); // Consider the head too
+            const dogBottom = dogRect.bottom;
             
-            if (frisbeeCenterX > dogLeft && frisbeeCenterX < dogRight && 
-                frisbeeCenterY > dogTop && frisbeeCenterY < dogY) {
+            // Adjust catch area to be more visually accurate
+            // Only a small margin of forgiveness (5px) for usability
+            const catchMargin = 5;
+            
+            // Check if frisbee overlaps with dog's body or head with small margin
+            if (frisbeeCenterX + catchMargin > dogLeft && 
+                frisbeeCenterX - catchMargin < dogRight && 
+                frisbeeCenterY + catchMargin > dogTop && 
+                frisbeeCenterY - catchMargin < dogBottom) {
                 catchFrisbee();
             }
         }
