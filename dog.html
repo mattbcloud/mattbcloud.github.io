@@ -429,6 +429,16 @@
             border: 1px solid white;
             text-align: center;
         }
+        
+        /* For debugging collision - normally hidden */
+        #catch-area {
+            position: absolute;
+            border: 2px dashed rgba(255, 0, 0, 0.5);
+            background-color: rgba(255, 0, 0, 0.2);
+            display: none;
+            z-index: 9;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -482,6 +492,9 @@
             <p>Rain: <span id="rain-display">0%</span></p>
             <p>Timer: <span id="timer-display">0.0</span>s</p>
         </div>
+        
+        <!-- Debug element for collision detection area - normally hidden -->
+        <div id="catch-area"></div>
         
         <div id="ground"></div>
         
@@ -541,6 +554,11 @@
         let barkCooldown = 0;
         let canThrow = true;
         
+        // Browser detection
+        const isChrome = navigator.userAgent.indexOf("Chrome") > -1;
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isChromeOnAndroid = isChrome && isAndroid;
+        
         // Cloud animation variables
         let clouds = [];
         let cloudSpeeds = [];
@@ -569,6 +587,7 @@
         const man = document.getElementById('man');
         const manArm1 = document.getElementById('man-arm1');
         const manArm2 = document.getElementById('man-arm2');
+        const catchArea = document.getElementById('catch-area');
         
         // Initialize game
         function initGame() {
@@ -672,6 +691,9 @@
                 
                 // Animate dog legs while moving
                 animateDogLegs();
+                
+                // Update catch area position
+                updateCatchArea();
             }
         }
         
@@ -691,11 +713,28 @@
                 // Animate dog legs while moving
                 animateDogLegs();
                 
+                // Update catch area position
+                updateCatchArea();
+                
                 // Check if dog catches frisbee when moving
                 if (frisbeeActive && frisbeeThrown) {
                     checkFrisbeeCatch();
                 }
             }
+        }
+        
+        // Update the catch area position and size to match the dog
+        function updateCatchArea() {
+            // Get dog position from its own style (more reliable across browsers)
+            const dogLeft = parseFloat(dog.style.left) || 0;
+            const dogWidth = 50;  // Match the dog's CSS width
+            const dogHeight = 40 + 20; // Match the dog's body + head height
+            
+            // Position the catch area to cover the dog and its head
+            catchArea.style.width = `${dogWidth + 20}px`;  // Slightly wider
+            catchArea.style.height = `${dogHeight + 10}px`; // Slightly taller
+            catchArea.style.left = `${dogLeft - (dogWidth / 2) - 10}px`; 
+            catchArea.style.bottom = `${window.innerHeight * 0.2}px`;
         }
         
         // Animate dog legs for running effect
@@ -730,7 +769,7 @@
                 const bubble = document.createElement('div');
                 bubble.className = 'bark-bubble';
                 bubble.textContent = 'WOOF!';
-                bubble.style.left = `${parseInt(dog.style.left) + 25}px`;
+                bubble.style.left = `${parseFloat(dog.style.left) + 25}px`;
                 bubble.style.top = `${dogY - 60}px`;
                 gameContainer.appendChild(bubble);
                 
@@ -929,31 +968,55 @@
         // Check if dog catches frisbee
         function checkFrisbeeCatch() {
             // Calculate the center of the frisbee
-            const frisbeeHeight = 10;
-            const frisbeeWidth = 40;
             const frisbeeCenterX = frisbeeX;
             const frisbeeCenterY = frisbeeY;
             
-            // Get dog element dimensions and position
-            const dogRect = dog.getBoundingClientRect();
-            const dogHeadRect = document.getElementById('dog-head').getBoundingClientRect();
-            
-            // Use dog's actual dimensions for more precise collision detection
-            const dogLeft = dogRect.left;
-            const dogRight = dogRect.right;
-            const dogTop = Math.min(dogRect.top, dogHeadRect.top); // Consider the head too
-            const dogBottom = dogRect.bottom;
-            
-            // Adjust catch area to be more visually accurate
-            // Only a small margin of forgiveness (5px) for usability
-            const catchMargin = 5;
-            
-            // Check if frisbee overlaps with dog's body or head with small margin
-            if (frisbeeCenterX + catchMargin > dogLeft && 
-                frisbeeCenterX - catchMargin < dogRight && 
-                frisbeeCenterY + catchMargin > dogTop && 
-                frisbeeCenterY - catchMargin < dogBottom) {
-                catchFrisbee();
+            // For Chrome on Android, use a more reliable calculation based on the dog's position
+            if (isChromeOnAndroid) {
+                // Get dog's position from its style (more reliable than getBoundingClientRect in Chrome Android)
+                const dogLeft = parseFloat(dog.style.left) || 0;
+                const dogWidth = 50; // Width from CSS
+                const dogHeight = 60; // Body + head height (approximated)
+                
+                // Define catch area with extra margin for Chrome on Android
+                const catchMargin = 20; // Larger catch margin for mobile usability
+                
+                // Calculate dog position relative to its center point (accounting for translateX(-50%))
+                const dogLeftEdge = dogLeft - (dogWidth / 2) - catchMargin;
+                const dogRightEdge = dogLeft + (dogWidth / 2) + catchMargin;
+                const dogTopEdge = window.innerHeight - window.innerHeight * 0.2 - dogHeight - catchMargin;
+                const dogBottomEdge = window.innerHeight - window.innerHeight * 0.2 + catchMargin;
+                
+                // Check if frisbee is within the catch area
+                if (frisbeeCenterX > dogLeftEdge && 
+                    frisbeeCenterX < dogRightEdge && 
+                    frisbeeCenterY > dogTopEdge && 
+                    frisbeeCenterY < dogBottomEdge) {
+                    catchFrisbee();
+                }
+            } 
+            // For other browsers, use the getBoundingClientRect method
+            else {
+                // Get dog element dimensions and position
+                const dogRect = dog.getBoundingClientRect();
+                const dogHeadRect = document.getElementById('dog-head').getBoundingClientRect();
+                
+                // Use dog's actual dimensions for collision detection
+                const dogLeft = dogRect.left;
+                const dogRight = dogRect.right;
+                const dogTop = Math.min(dogRect.top, dogHeadRect.top); 
+                const dogBottom = dogRect.bottom;
+                
+                // Small margin for usability
+                const catchMargin = 10;
+                
+                // Check if frisbee overlaps with dog
+                if (frisbeeCenterX + catchMargin > dogLeft && 
+                    frisbeeCenterX - catchMargin < dogRight && 
+                    frisbeeCenterY + catchMargin > dogTop && 
+                    frisbeeCenterY - catchMargin < dogBottom) {
+                    catchFrisbee();
+                }
             }
         }
         
@@ -1079,6 +1142,9 @@
                 
                 // Update cloud positions
                 updateClouds(deltaTime);
+                
+                // Update catch area position (constantly update in case of screen rotation)
+                updateCatchArea();
             }
             
             requestAnimationFrame(gameLoop);
@@ -1092,6 +1158,9 @@
             
             // Update displays
             updateGameInfo();
+            
+            // Initialize catch area
+            updateCatchArea();
             
             // Start game loop if it's not already running
             if (!lastFrameTime) {
