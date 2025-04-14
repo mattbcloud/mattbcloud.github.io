@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Frog Snack</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            max-width: 100%;
+            max-height: 100vh;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        #game-canvas {
+            display: block;
+            background-color: #B0E0E6;
+        }
+        
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 20;
+        }
+        
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 20;
+        }
+        
+        #game-over-screen h1 {
+            font-size: 48px;
+            color: #4CAF50;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        #game-over-screen p {
+            font-size: 24px;
+            color: white;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        #ok-button {
+            background-color: #4CAF50;
+            border: 3px solid #38883c;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        #ok-button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+        
+        #start-screen h1 {
+            font-size: 48px;
+            color: #4CAF50;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        #start-screen p {
+            font-size: 18px;
+            color: white;
+            margin-bottom: 10px;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        #start-button {
+            background-color: #4CAF50;
+            border: 3px solid #38883c;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        #start-button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 820px) {
+            #game-container {
+                width: 100%;
+                height: 100vh;
+            }
+            
+            #start-screen h1 {
+                font-size: 36px;
+            }
+            
+            #start-screen p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        <div id="score">Score: 0</div>
+        <div id="start-screen">
+            <h1>Frog Snack</h1>
+            <p>Help the hungry frog catch flies with its tongue!</p>
+            <p>Use your mouse or finger to aim, then click or tap to shoot the tongue.</p>
+            <button id="start-button">START GAME</button>
+        </div>
+        <div id="game-over-screen">
+            <h1>Game Over!</h1>
+            <p>Your score: <span id="final-score">0</span></p>
+            <p>You ran out of time to catch another fly!</p>
+            <button id="ok-button">OK</button>
+        </div>
+    </div>
+    
+    <script>
+        // Wait for the DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game elements
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const scoreElement = document.getElementById('score');
+            const startScreen = document.getElementById('start-screen');
+            const startButton = document.getElementById('start-button');
+            
+            // Game state
+            let score = 0;
+            let gameRunning = false;
+            let mouseX = canvas.width / 2;
+            let mouseY = canvas.height / 2;
+            let lastFrameTime = 0;
+            let countdownTimer = 30; // 30 second timer
+            let flySpeedMultiplier = 1.0; // Starting speed multiplier
+            let flyCatchCount = 0; // Counter to track flies caught for thought bubble display
+            
+            // Game objects
+            let frog;
+            let flies = [];
+            let animations = [];
+            let clouds = [];
+            let grassBlades = [];
+            
+            // Constants
+            const GROUND_HEIGHT = canvas.height / 4;
+            
+            // Ensure canvas is properly sized
+            function setupCanvas() {
+                // For mobile, adjust canvas to window size
+                if (window.innerWidth < 820) {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                
+                // Make sure we have the correct styles
+                canvas.style.width = canvas.width + 'px';
+                canvas.style.height = canvas.height + 'px';
+                
+                console.log(`Canvas size set to ${canvas.width}x${canvas.height}`);
+            }
+            
+            // Thought bubble constructor
+            function ThoughtBubble(message) {
+                this.message = message;
+                this.x = frog.x;
+                this.y = frog.y - frog.width - 50;
+                this.alpha = 1;
+                this.fadeSpeed = 0.01;
+                this.duration = 120; // Frames to display (about 2 seconds)
+                this.timer = 0;
+                this.bubbleSize = 45; // Main bubble size
+                
+                this.update = function(deltaTime) {
+                    this.timer += deltaTime || 1;
+                    
+                    // Start fading after half the duration
+                    if (this.timer > this.duration / 2) {
+                        this.alpha -= this.fadeSpeed * (deltaTime || 1);
+                    }
+                    
+                    // Follow the frog's position
+                    this.x = frog.x;
+                    this.y = frog.y - frog.width - 50;
+                    
+                    return this.timer < this.duration && this.alpha > 0; // Return false when bubble should be removed
+                };
+                
+                this.draw = function() {
+                    if (this.alpha <= 0) return;
+                    
+                    // Draw bubble
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                    ctx.strokeStyle = `rgba(0, 0, 0, ${this.alpha})`;
+                    ctx.lineWidth = 2;
+                    
+                    // Draw clean, simple thought bubble
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.bubbleSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Draw just two small circles connecting to frog (thought connector)
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y + this.bubbleSize + 8, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y + this.bubbleSize + 22, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Draw text
+                    ctx.fillStyle = `rgba(0, 0, 0, ${this.alpha})`;
+                    ctx.font = "bold 18px Arial";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(this.message, this.x, this.y);
+                };
+            }
+            
+            // Frog constructor
+            function Frog() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height - GROUND_HEIGHT / 2 - 30;
+                this.width = 60;
+                this.height = 40;
+                this.color = '#3A9E4C';
+                this.tongueColor = '#FF6B81';
+                this.tongueWidth = 10;
+                this.tongueLength = 0;
+                this.maxTongueLength = canvas.height / 2;
+                this.tongueExtended = false;
+                this.tongueProgress = 0;
+                this.tongueSpeed = 15;
+                this.tongueRetractSpeed = 20;
+                this.tongueAngle = 0;
+                this.cooldown = false;
+                this.cooldownTime = 0;
+                this.maxCooldownTime = 20;
+                this.mouthOpen = false; // Track if mouth is open
+                
+                this.update = function(deltaTime) {
+                    // Handle cooldown
+                    if (this.cooldown) {
+                        this.cooldownTime++;
+                        if (this.cooldownTime >= this.maxCooldownTime) {
+                            this.cooldown = false;
+                            this.cooldownTime = 0;
+                        }
+                    }
+                    
+                    // Get the mouth position for accurate angle calculation
+                    const eyeOffset = this.width / 4;
+                    const mouthX = this.x;
+                    const mouthY = this.y + eyeOffset;
+                    
+                    // Calculate angle from mouth to mouse/touch
+                    this.tongueAngle = Math.atan2(mouseY - mouthY, mouseX - mouthX);
+                    
+                    // Update tongue position
+                    if (this.tongueExtended) {
+                        if (this.tongueProgress < 100) {
+                            // Extending
+                            this.tongueLength += this.tongueSpeed * (deltaTime || 1);
+                            if (this.tongueLength >= this.maxTongueLength) {
+                                this.tongueLength = this.maxTongueLength;
+                                this.tongueProgress = 100;
+                            } else {
+                                this.tongueProgress = (this.tongueLength / this.maxTongueLength) * 100;
+                            }
+                            
+                            // Check for collisions with flies while extending
+                            this.checkTongueCollision();
+                        } else {
+                            // Retracting
+                            this.tongueLength -= this.tongueRetractSpeed * (deltaTime || 1);
+                            if (this.tongueLength <= 0) {
+                                this.tongueLength = 0;
+                                this.tongueExtended = false;
+                                // Set cooldown after retracting
+                                this.cooldown = true;
+                                this.cooldownTime = 0;
+                                
+                                // Close the mouth when tongue is fully retracted
+                                this.mouthOpen = false;
+                            }
+                        }
+                    }
+                };
+                
+                this.draw = function() {
+                    // Draw the frog body (circle)
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw eyes (white circles with black pupils)
+                    const eyeSize = this.width / 6;
+                    const eyeOffset = this.width / 4;
+                    
+                    // Left eye
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(this.x - eyeOffset, this.y - eyeOffset, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Right eye
+                    ctx.beginPath();
+                    ctx.arc(this.x + eyeOffset, this.y - eyeOffset, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Pupils (they follow the mouse)
+                    ctx.fillStyle = 'black';
+                    
+                    // Calculate pupil positions based on mouse direction
+                    const angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+                    const pupilOffset = eyeSize / 2;
+                    const leftPupilX = this.x - eyeOffset + Math.cos(angle) * pupilOffset;
+                    const leftPupilY = this.y - eyeOffset + Math.sin(angle) * pupilOffset;
+                    const rightPupilX = this.x + eyeOffset + Math.cos(angle) * pupilOffset;
+                    const rightPupilY = this.y - eyeOffset + Math.sin(angle) * pupilOffset;
+                    
+                    // Draw pupils
+                    ctx.beginPath();
+                    ctx.arc(leftPupilX, leftPupilY, eyeSize / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.arc(rightPupilX, rightPupilY, eyeSize / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw mouth based on state (open or closed)
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    
+                    if (this.mouthOpen) {
+                        // Draw open mouth (oval shape)
+                        ctx.fillStyle = '#FF3355'; // Pink inside of mouth
+                        ctx.beginPath();
+                        ctx.ellipse(this.x, this.y + eyeOffset, this.width / 4, this.width / 6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Draw mouth outline
+                        ctx.strokeStyle = 'black';
+                        ctx.beginPath();
+                        ctx.ellipse(this.x, this.y + eyeOffset, this.width / 4, this.width / 6, 0, 0, Math.PI * 2);
+                        ctx.stroke();
+                    } else {
+                        // Draw closed mouth (simple curved line)
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y + eyeOffset, this.width / 4, 0, Math.PI);
+                        ctx.stroke();
+                    }
+                    
+                    // Draw tongue if extended
+                    if (this.tongueExtended) {
+                        this.drawTongue();
+                    }
+                };
+                
+                this.drawTongue = function() {
+                    // Get the mouth position (the tongue should come from the mouth)
+                    const eyeOffset = this.width / 4;
+                    const mouthX = this.x;
+                    const mouthY = this.y + eyeOffset;
+                    
+                    // Calculate the end position of the tongue
+                    const endX = mouthX + Math.cos(this.tongueAngle) * this.tongueLength;
+                    const endY = mouthY + Math.sin(this.tongueAngle) * this.tongueLength;
+                    
+                    // Draw the tongue line
+                    ctx.strokeStyle = this.tongueColor;
+                    ctx.lineWidth = this.tongueWidth;
+                    ctx.lineCap = 'round';
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(mouthX, mouthY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    
+                    // Draw the tongue tip
+                    ctx.fillStyle = '#FF3355';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, this.tongueWidth / 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                };
+                
+                this.extendTongue = function() {
+                    if (!this.tongueExtended && !this.cooldown) {
+                        this.tongueExtended = true;
+                        this.tongueProgress = 0;
+                        this.tongueLength = 0;
+                        
+                        // Open the mouth when tongue extends
+                        this.mouthOpen = true;
+                    }
+                };
+                
+                this.checkTongueCollision = function() {
+                    // Get the mouth position
+                    const eyeOffset = this.width / 4;
+                    const mouthX = this.x;
+                    const mouthY = this.y + eyeOffset;
+                    
+                    // Get tongue tip position
+                    const tipX = mouthX + Math.cos(this.tongueAngle) * this.tongueLength;
+                    const tipY = mouthY + Math.sin(this.tongueAngle) * this.tongueLength;
+                    
+                    // Check collision with each fly
+                    for (let i = 0; i < flies.length; i++) {
+                        const fly = flies[i];
+                        const distance = Math.sqrt(
+                            Math.pow(tipX - fly.x, 2) + 
+                            Math.pow(tipY - fly.y, 2)
+                        );
+                        
+                        if (distance < fly.size + this.tongueWidth / 2) {
+                            // Caught a fly!
+                            catchFly(i);
+                            break; // Only catch one fly at a time
+                        }
+                    }
+                };
+            }
+            
+            // Fly constructor
+            function Fly(x, y) {
+                this.x = x || Math.random() * (canvas.width - 40) + 20;
+                this.y = y || Math.random() * (canvas.height / 2 - 40) + 20;
+                this.size = 10 + Math.random() * 5;
+                this.color = '#333';
+                this.wingColor = 'rgba(255, 255, 255, 0.7)';
+                this.wingAngle = 0;
+                this.wingSpeed = 0.3 + Math.random() * 0.2;
+                
+                // Apply the current speed multiplier to make flies faster as game progresses
+                const baseSpeed = 1 + Math.random() * 2;
+                this.speed = baseSpeed * flySpeedMultiplier;
+                
+                this.angle = Math.random() * Math.PI * 2;
+                this.changeDirectionTime = 0;
+                this.maxChangeDirectionTime = 50 + Math.random() * 100;
+                
+                this.update = function(deltaTime) {
+                    // Flap wings
+                    this.wingAngle += this.wingSpeed * (deltaTime || 1);
+                    
+                    // Change direction occasionally
+                    this.changeDirectionTime += deltaTime || 1;
+                    if (this.changeDirectionTime > this.maxChangeDirectionTime) {
+                        this.angle = Math.random() * Math.PI * 2;
+                        this.changeDirectionTime = 0;
+                        this.maxChangeDirectionTime = 50 + Math.random() * 100;
+                    }
+                    
+                    // Move in current direction
+                    this.x += Math.cos(this.angle) * this.speed * (deltaTime || 1);
+                    this.y += Math.sin(this.angle) * this.speed * (deltaTime || 1);
+                    
+                    // Bounce off walls
+                    if (this.x < this.size) {
+                        this.x = this.size;
+                        this.angle = Math.PI - this.angle;
+                    } else if (this.x > canvas.width - this.size) {
+                        this.x = canvas.width - this.size;
+                        this.angle = Math.PI - this.angle;
+                    }
+                    
+                    if (this.y < this.size) {
+                        this.y = this.size;
+                        this.angle = -this.angle;
+                    } else if (this.y > canvas.height / 2) {
+                        this.y = canvas.height / 2;
+                        this.angle = -this.angle;
+                    }
+                };
+                
+                this.draw = function() {
+                    // Draw fly body
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw wings
+                    ctx.fillStyle = this.wingColor;
+                    
+                    // Left wing (rotated 180 degrees)
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(Math.sin(this.wingAngle) * 0.5 - 0.8 + Math.PI);
+                    ctx.beginPath();
+                    ctx.ellipse(-this.size, 0, this.size * 1.5, this.size * 0.8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    
+                    // Right wing (rotated 180 degrees)
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(Math.sin(this.wingAngle) * 0.5 + 0.8 + Math.PI);
+                    ctx.beginPath();
+                    ctx.ellipse(this.size, 0, this.size * 1.5, this.size * 0.8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    
+                    // Draw eyes
+                    ctx.fillStyle = 'red';
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.size * 0.3, this.y - this.size * 0.2, this.size * 0.3, 0, Math.PI * 2);
+                    ctx.arc(this.x - this.size * 0.3, this.y - this.size * 0.2, this.size * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                };
+            }
+            
+            // Animation when a fly is caught
+            function PopAnimation(x, y, size) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.alpha = 1;
+                this.growSpeed = 2;
+                this.fadeSpeed = 0.05;
+                
+                this.update = function(deltaTime) {
+                    this.size += this.growSpeed * (deltaTime || 1);
+                    this.alpha -= this.fadeSpeed * (deltaTime || 1);
+                    return this.alpha > 0; // Return false when animation should be removed
+                };
+                
+                this.draw = function() {
+                    ctx.fillStyle = `rgba(255, 255, 0, ${this.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = `rgba(255, 165, 0, ${this.alpha})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 0.8, 0, Math.PI * 2);
+                    ctx.stroke();
+                };
+            }
+            
+            // Create a new fly (called when one is caught)
+            function createNewFly() {
+                // Create a new fly that enters from one of the edges
+                let x, y;
+                const side = Math.floor(Math.random() * 4);
+                
+                switch(side) {
+                    case 0: // Top
+                        x = Math.random() * canvas.width;
+                        y = -20;
+                        break;
+                    case 1: // Right
+                        x = canvas.width + 20;
+                        y = Math.random() * (canvas.height / 2);
+                        break;
+                    case 2: // Bottom (but still in top half)
+                        x = Math.random() * canvas.width;
+                        y = canvas.height / 2 + 20;
+                        break;
+                    case 3: // Left
+                        x = -20;
+                        y = Math.random() * (canvas.height / 2);
+                        break;
+                }
+                
+                return new Fly(x, y);
+            }
+            
+            // When a fly is caught
+            function catchFly(index) {
+                // Add pop animation
+                animations.push(new PopAnimation(flies[index].x, flies[index].y, flies[index].size));
+                
+                // Increase score
+                score += 10;
+                scoreElement.textContent = `Score: ${score}`;
+                
+                // Increment fly catch counter
+                flyCatchCount++;
+                
+                // Show thought bubble every third catch
+                if (flyCatchCount % 3 === 0) {
+                    // Random message from list
+                    const messages = ["Yummy!", "Got One!", "Chomp!", "Tasty!", "More!", "Burp!", "Ribbit!"];
+                    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                    
+                    // Create and add thought bubble animation
+                    animations.push(new ThoughtBubble(randomMessage));
+                }
+                
+                // Reset the countdown timer
+                countdownTimer = 30;
+                
+                // Increase fly speed by 5%
+                flySpeedMultiplier *= 1.05;
+                console.log("Fly speed increased to:", flySpeedMultiplier.toFixed(2) + "x");
+                
+                // Remove the caught fly and add a new one
+                flies.splice(index, 1);
+                flies.push(createNewFly());
+            }
+            
+            // Draw game background
+            function drawBackground() {
+                // Sky gradient
+                const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                skyGradient.addColorStop(0, '#87CEEB'); // Sky blue
+                skyGradient.addColorStop(1, '#B0E0E6'); // Light blue
+                
+                ctx.fillStyle = skyGradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Ground/Grass
+                const groundGradient = ctx.createLinearGradient(0, canvas.height - GROUND_HEIGHT, 0, canvas.height);
+                groundGradient.addColorStop(0, '#7CFC00'); // Lawn green
+                groundGradient.addColorStop(1, '#006400'); // Dark green
+                
+                ctx.fillStyle = groundGradient;
+                ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+                
+                // Draw clouds
+                clouds.forEach(cloud => {
+                    cloud.update();
+                    cloud.draw();
+                });
+                
+                // Draw grass blades
+                grassBlades.forEach(blade => {
+                    blade.draw();
+                });
+            }
+            
+            // Cloud constructor
+            function Cloud(x, y, size) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.speed = 0.2 + Math.random() * 0.3; // Slow, gentle speed
+                
+                // Cloud segments (relative positions)
+                this.segments = [
+                    {x: 0, y: 0, size: this.size},
+                    {x: this.size * 0.7, y: 0, size: this.size * 0.8},
+                    {x: -this.size * 0.7, y: 0, size: this.size * 0.8},
+                    {x: 0, y: -this.size * 0.5, size: this.size * 0.7}
+                ];
+                
+                this.update = function(deltaTime) {
+                    // Move cloud slowly from right to left
+                    this.x -= this.speed * (deltaTime || 1);
+                    
+                    // If cloud moves off screen, reset to right side
+                    if (this.x + this.size * 2 < 0) {
+                        this.x = canvas.width + this.size;
+                        this.y = 20 + Math.random() * 40; // Vary height slightly
+                    }
+                };
+                
+                this.draw = function() {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    
+                    // Draw cloud segments
+                    for (let segment of this.segments) {
+                        ctx.beginPath();
+                        ctx.arc(
+                            this.x + segment.x, 
+                            this.y + segment.y, 
+                            segment.size, 
+                            0, 
+                            Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                };
+            }
+            
+            // Grass blade constructor
+            function GrassBlade(x, y, height) {
+                this.x = x;
+                this.y = y;
+                this.height = height;
+                
+                this.draw = function() {
+                    ctx.strokeStyle = '#32CD32';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x, this.y - this.height);
+                    ctx.stroke();
+                };
+            }
+            
+            // Start the game
+            function startGame() {
+                // Hide start screen
+                startScreen.style.display = 'none';
+                
+                // Hide game over screen if it's showing
+                document.getElementById('game-over-screen').style.display = 'none';
+                
+                // Reset score
+                score = 0;
+                scoreElement.textContent = `Score: 0`;
+                
+                // Reset timer
+                countdownTimer = 30;
+                
+                // Reset fly speed multiplier
+                flySpeedMultiplier = 1.0;
+                
+                // Reset fly catch counter
+                flyCatchCount = 0;
+                
+                // Create frog
+                frog = new Frog();
+                
+                // Create flies
+                flies = [];
+                for (let i = 0; i < 3; i++) {
+                    // Position flies at different parts of the screen
+                    const x = (canvas.width / 4) * (i + 1);
+                    const y = (canvas.height / 6) * (i % 2 + 1);
+                    flies.push(new Fly(x, y));
+                }
+                
+                // Reset animations
+                animations = [];
+                
+                // Start game
+                gameRunning = true;
+                
+                // Start the game loop
+                requestAnimationFrame(gameLoop);
+                
+                console.log("Game started!");
+            }
+            
+            // Main game loop
+            function gameLoop(timestamp) {
+                if (!gameRunning) return;
+                
+                // Calculate delta time for smooth animations
+                const deltaTime = (timestamp - lastFrameTime) / 16.67; // 60fps = 16.67ms per frame
+                lastFrameTime = timestamp;
+                
+                // Update countdown timer
+                countdownTimer -= deltaTime / 60; // Convert frames to seconds
+                
+                // Check if timer has run out
+                if (countdownTimer <= 0) {
+                    gameOver();
+                    return;
+                }
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw background
+                drawBackground();
+                
+                // Update and draw flies
+                flies.forEach(fly => {
+                    fly.update(deltaTime);
+                    fly.draw();
+                });
+                
+                // Update and draw frog
+                frog.update(deltaTime);
+                frog.draw();
+                
+                // Update and draw animations
+                for (let i = animations.length - 1; i >= 0; i--) {
+                    if (!animations[i].update(deltaTime)) {
+                        animations.splice(i, 1);
+                    } else {
+                        animations[i].draw();
+                    }
+                }
+                
+                // Continue game loop
+                requestAnimationFrame(gameLoop);
+            }
+            
+            // Game over function
+            function gameOver() {
+                gameRunning = false;
+                
+                // Update final score
+                document.getElementById('final-score').textContent = score;
+                
+                // Show custom message based on score
+                let message = "";
+                if (score === 0) {
+                    message = "You didn't catch any flies!";
+                } else if (score < 50) {
+                    message = "You ran out of time to catch another fly!";
+                } else if (score < 100) {
+                    message = "Good job! The flies got too fast for you!";
+                } else {
+                    message = "Amazing! You're a fly-catching master!";
+                }
+                
+                // Update game over message
+                const gameOverMessage = document.querySelector('#game-over-screen p:nth-child(3)');
+                gameOverMessage.textContent = message;
+                
+                // Show game over screen
+                document.getElementById('game-over-screen').style.display = 'flex';
+            }
+            
+            // Event handlers
+            function handleMouseMove(e) {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+            }
+            
+            function handleTouchMove(e) {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.touches[0].clientX - rect.left;
+                mouseY = e.touches[0].clientY - rect.top;
+            }
+            
+            function handleMouseDown(e) {
+                if (!gameRunning) return;
+                e.preventDefault();
+                frog.extendTongue();
+            }
+            
+            function handleTouchStart(e) {
+                if (!gameRunning) return;
+                e.preventDefault();
+                
+                // Update touch position
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.touches[0].clientX - rect.left;
+                mouseY = e.touches[0].clientY - rect.top;
+                
+                frog.extendTongue();
+            }
+            
+            // Set up the game
+            function init() {
+                // Make sure canvas is properly sized
+                setupCanvas();
+                
+                // Initialize clouds
+                clouds = [];
+                for (let i = 0; i < 5; i++) {
+                    // Position clouds at different distances across the screen
+                    const x = (canvas.width / 5) * i + Math.random() * 50;
+                    const y = 30 + Math.random() * 40;
+                    const size = 20 + Math.random() * 30;
+                    clouds.push(new Cloud(x, y, size));
+                }
+                
+                // Initialize grass blades
+                grassBlades = [];
+                for (let i = 0; i < canvas.width; i += 10) {
+                    const grassHeight = 5 + Math.random() * 15;
+                    const grassX = i + Math.random() * 8;
+                    grassBlades.push(new GrassBlade(
+                        grassX, 
+                        canvas.height - GROUND_HEIGHT, 
+                        grassHeight
+                    ));
+                }
+                
+                // Draw initial scene to show before game starts
+                drawBackground();
+                
+                // Add event listeners for mouse/touch
+                canvas.addEventListener('mousemove', handleMouseMove);
+                canvas.addEventListener('mousedown', handleMouseDown);
+                canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+                
+                // Start button click
+                startButton.addEventListener('click', startGame);
+                
+                // Also handle touch for start button
+                startButton.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    startGame();
+                }, { passive: false });
+                
+                // OK button click for game over screen
+                document.getElementById('ok-button').addEventListener('click', function() {
+                    document.getElementById('game-over-screen').style.display = 'none';
+                    startScreen.style.display = 'flex';
+                });
+                
+                // Also handle touch for OK button
+                document.getElementById('ok-button').addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    document.getElementById('game-over-screen').style.display = 'none';
+                    startScreen.style.display = 'flex';
+                }, { passive: false });
+                
+                console.log("Game initialized, waiting for start button click");
+            }
+            
+            // Initialize everything
+            init();
+        });
+    </script>
+</body>
+</html>
