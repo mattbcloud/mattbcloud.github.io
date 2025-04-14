@@ -273,13 +273,13 @@
             // Initialize Firebase
             const firebaseConfig = {
                 // Replace with your Firebase config
-                apiKey: "AIzaSyB8470JZ_h31fzPCj_3GUygWELC8UOrYk8",
-                authDomain: "frogsnack-27d95.firebaseapp.com",
-                databaseURL: "https://frogsnack-27d95-default-rtdb.firebaseio.com/",
-                projectId: "frogsnack-27d95",
-                storageBucket: "frogsnack-27d95.firebasestorage.app",
-                messagingSenderId: "63739048985",
-                appId: "1:63739048985:web:e2a58e57408b3cd3faa688"
+                apiKey: "AIzaSyA1234567890abcdefghijklmnopqrstuv",
+                authDomain: "frog-snack-game.firebaseapp.com",
+                databaseURL: "https://frog-snack-game-default-rtdb.firebaseio.com",
+                projectId: "frog-snack-game",
+                storageBucket: "frog-snack-game.appspot.com",
+                messagingSenderId: "123456789012",
+                appId: "1:123456789012:web:abcdef1234567890"
             };
             
             // Initialize Firebase
@@ -339,11 +339,21 @@
                 console.log(`Canvas size set to ${canvas.width}x${canvas.height}`);
             }
             
+            // Track which side the thought bubble should appear on (alternating)
+            let lastBubbleSide = 'right'; // Start with right, will alternate
+            
             // Thought bubble constructor
             function ThoughtBubble(message) {
                 this.message = message;
-                this.x = frog.x;
-                this.y = frog.y - frog.width - 50;
+                // Alternate sides for each new bubble
+                this.side = lastBubbleSide === 'right' ? 'left' : 'right';
+                lastBubbleSide = this.side; // Update for next bubble
+                
+                // Position based on side
+                const offsetX = this.side === 'left' ? -100 : 100;
+                this.x = frog.x + offsetX;
+                this.y = frog.y - frog.width / 2;
+                
                 this.alpha = 1;
                 this.fadeSpeed = 0.01;
                 this.duration = 120; // Frames to display (about 2 seconds)
@@ -358,9 +368,10 @@
                         this.alpha -= this.fadeSpeed * (deltaTime || 1);
                     }
                     
-                    // Follow the frog's position
-                    this.x = frog.x;
-                    this.y = frog.y - frog.width - 50;
+                    // Follow the frog's position, maintaining side position
+                    const offsetX = this.side === 'left' ? -100 : 100;
+                    this.x = frog.x + offsetX;
+                    this.y = frog.y - frog.width / 2;
                     
                     return this.timer < this.duration && this.alpha > 0; // Return false when bubble should be removed
                 };
@@ -379,14 +390,23 @@
                     ctx.fill();
                     ctx.stroke();
                     
+                    // Draw connecting circles - position based on side
+                    const connectorX1 = this.side === 'left' ? 
+                        this.x + this.bubbleSize * 0.7 : 
+                        this.x - this.bubbleSize * 0.7;
+                    
                     // Draw just two small circles connecting to frog (thought connector)
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y + this.bubbleSize + 8, 8, 0, Math.PI * 2);
+                    ctx.arc(connectorX1, this.y + this.bubbleSize * 0.3, 8, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
                     
+                    const connectorX2 = this.side === 'left' ? 
+                        connectorX1 + 14 : 
+                        connectorX1 - 14;
+                    
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y + this.bubbleSize + 22, 4, 0, Math.PI * 2);
+                    ctx.arc(connectorX2, this.y + this.bubbleSize * 0.6, 4, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
                     
@@ -763,10 +783,11 @@
                 // Increment fly catch counter
                 flyCatchCount++;
                 
-                // Show thought bubble every third catch
-                if (flyCatchCount % 3 === 0) {
+                // Show thought bubble every second catch (increased frequency to showcase the alternating sides)
+                if (flyCatchCount % 2 === 0) {
                     // Random message from list
-                    const messages = ["Yummy!", "Got One!", "Chomp!", "Tasty!", "More!", "Burp!", "Ribbit!"];
+                    const messages = ["Yummy!", "Got One!", "Chomp!", "Tasty!", "More!", "Burp!", "Ribbit!", 
+                                    "Delicious!", "Slurp!", "Gulp!", "Score!", "Gotcha!", "Mmm!", "Sweet!"];
                     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
                     
                     // Create and add thought bubble animation
