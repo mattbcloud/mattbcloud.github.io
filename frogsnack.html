@@ -428,15 +428,15 @@
                 };
             }
             
-            // Frog constructor
+            // Frog constructor (UPDATED to match the cartoon frog image)
             function Frog() {
                 this.x = canvas.width / 2;
-                this.y = canvas.height - GROUND_HEIGHT / 2 - 40; // Adjusted y position for taller frog
-                this.width = 70; // Made wider for the body
-                this.height = 80; // Made taller for the body - INCREASED HEIGHT HERE
-                this.bodyColor = '#3A9E4C'; // Main body color
-                this.bellyColor = '#A5FFB3'; // Even lighter green for more visible belly
-                this.legColor = '#2F7A3D'; // Darker green for legs
+                this.y = canvas.height - GROUND_HEIGHT / 2 - 40;
+                this.width = 80; // Made wider to match the round cartoon frog
+                this.height = 80; // Equal width and height for a round body
+                this.bodyColor = '#4CAF50'; // Brighter green to match image
+                this.bellyColor = '#FFEB3B'; // Yellowish belly to match image
+                this.legColor = '#388E3C'; // Slightly darker green for legs
                 this.tongueColor = '#FF6B81';
                 this.tongueWidth = 10;
                 this.tongueLength = 0;
@@ -449,9 +449,8 @@
                 this.cooldown = false;
                 this.cooldownTime = 0;
                 this.maxCooldownTime = 20;
-                this.mouthOpen = false; // Track if mouth is open
-                this.legAngle = 0; // For slight leg animation
-                this.legSpeed = 0.05; // Speed of leg animation
+                this.mouthOpen = false;
+                this.eyeSize = this.width / 2.5; // Much larger eyes
                 
                 this.update = function(deltaTime) {
                     // Handle cooldown
@@ -465,7 +464,7 @@
                     
                     // Get the mouth position for accurate angle calculation
                     const mouthX = this.x;
-                    const mouthY = this.y + this.height * 0.1; // Adjusted mouth position
+                    const mouthY = this.y + this.height * 0.1;
                     
                     // Calculate angle from mouth to mouse/touch
                     this.tongueAngle = Math.atan2(mouseY - mouthY, mouseX - mouthX);
@@ -499,109 +498,108 @@
                             }
                         }
                     }
-                    
-                    // Animate legs slightly
-                    this.legAngle += this.legSpeed * (deltaTime || 1);
                 };
                 
                 this.draw = function() {
                     // Save the context state
                     ctx.save();
                     
-                    // Draw back legs first (to be behind body)
-                    this.drawBackLegs();
+                    // Draw legs first (behind body)
+                    this.drawLegs();
                     
-                    // Draw the main body (oval shape)
+                    // Draw the main body (circle for the cartoon look)
                     ctx.fillStyle = this.bodyColor;
                     ctx.beginPath();
-                    ctx.ellipse(this.x, this.y, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+                    ctx.arc(this.x, this.y, this.width / 2, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Draw the belly (lighter oval on bottom half) - enlarged and more visible
+                    // Draw the belly (semi-circle on bottom half)
                     ctx.fillStyle = this.bellyColor;
                     ctx.beginPath();
-                    ctx.ellipse(
-                        this.x, 
-                        this.y + this.height * 0.18, 
-                        this.width * 0.5, 
-                        this.height * 0.4, 
-                        0, 0, Math.PI
-                    );
+                    ctx.arc(this.x, this.y + this.height * 0.1, this.width * 0.35, 0, Math.PI);
                     ctx.fill();
                     
-                    // Add slight outline to belly for definition
-                    ctx.strokeStyle = 'rgba(58, 158, 76, 0.3)';
-                    ctx.lineWidth = 1.5;
-                    ctx.beginPath();
-                    ctx.ellipse(
-                        this.x, 
-                        this.y + this.height * 0.18, 
-                        this.width * 0.5, 
-                        this.height * 0.4, 
-                        0, 0, Math.PI
-                    );
-                    ctx.stroke();
+                    // Draw eyes (large white circles with black pupils)
+                    const eyeOffsetX = this.width / 5;
+                    const eyeOffsetY = this.height / 5;
                     
-                    // Draw front legs
-                    this.drawFrontLegs();
-                    
-                    // Draw eyes (white circles with black pupils)
-                    const eyeSize = this.width / 8;
-                    const eyeOffsetX = this.width / 4;
-                    const eyeOffsetY = this.height / 5; // Adjusted for taller frog
-                    
-                    // Left eye
+                    // Draw white part of eyes (left and right)
                     ctx.fillStyle = 'white';
                     ctx.beginPath();
-                    ctx.arc(this.x - eyeOffsetX, this.y - eyeOffsetY, eyeSize, 0, Math.PI * 2);
+                    ctx.arc(this.x - eyeOffsetX, this.y - eyeOffsetY, this.eyeSize / 2, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Right eye
                     ctx.beginPath();
-                    ctx.arc(this.x + eyeOffsetX, this.y - eyeOffsetY, eyeSize, 0, Math.PI * 2);
+                    ctx.arc(this.x + eyeOffsetX, this.y - eyeOffsetY, this.eyeSize / 2, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Pupils (they follow the mouse)
-                    ctx.fillStyle = 'black';
+                    // Add green circle around eyes (like in the image)
+                    ctx.strokeStyle = '#388E3C';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(this.x - eyeOffsetX, this.y - eyeOffsetY, this.eyeSize / 2, 0, Math.PI * 2);
+                    ctx.stroke();
                     
-                    // Calculate pupil positions based on mouse direction
+                    ctx.beginPath();
+                    ctx.arc(this.x + eyeOffsetX, this.y - eyeOffsetY, this.eyeSize / 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Pupils (black circles)
+                    ctx.fillStyle = 'black';
+                    const pupilSize = this.eyeSize / 4; // Large pupils
+                    
+                    // Calculate pupil positions based on mouse direction (limited movement)
                     const angle = Math.atan2(mouseY - this.y, mouseX - this.x);
-                    const pupilOffset = eyeSize / 2;
-                    const leftPupilX = this.x - eyeOffsetX + Math.cos(angle) * pupilOffset;
-                    const leftPupilY = this.y - eyeOffsetY + Math.sin(angle) * pupilOffset;
-                    const rightPupilX = this.x + eyeOffsetX + Math.cos(angle) * pupilOffset;
-                    const rightPupilY = this.y - eyeOffsetY + Math.sin(angle) * pupilOffset;
+                    const maxOffset = this.eyeSize / 6; // Limit pupil movement
+                    const leftPupilX = this.x - eyeOffsetX + Math.cos(angle) * maxOffset;
+                    const leftPupilY = this.y - eyeOffsetY + Math.sin(angle) * maxOffset;
+                    const rightPupilX = this.x + eyeOffsetX + Math.cos(angle) * maxOffset;
+                    const rightPupilY = this.y - eyeOffsetY + Math.sin(angle) * maxOffset;
                     
                     // Draw pupils
                     ctx.beginPath();
-                    ctx.arc(leftPupilX, leftPupilY, eyeSize / 2, 0, Math.PI * 2);
+                    ctx.arc(leftPupilX, leftPupilY, pupilSize, 0, Math.PI * 2);
                     ctx.fill();
                     
                     ctx.beginPath();
-                    ctx.arc(rightPupilX, rightPupilY, eyeSize / 2, 0, Math.PI * 2);
+                    ctx.arc(rightPupilX, rightPupilY, pupilSize, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Draw mouth based on state (open or closed)
-                    ctx.strokeStyle = 'black';
-                    ctx.lineWidth = 2;
+                    // Add white reflection spots on pupils
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(leftPupilX - pupilSize/3, leftPupilY - pupilSize/3, pupilSize/4, 0, Math.PI * 2);
+                    ctx.arc(rightPupilX - pupilSize/3, rightPupilY - pupilSize/3, pupilSize/4, 0, Math.PI * 2);
+                    ctx.fill();
                     
+                    // Draw the simple smile (curved line)
                     if (this.mouthOpen) {
-                        // Draw open mouth (oval shape)
-                        ctx.fillStyle = '#FF3355'; // Pink inside of mouth
+                        // Open mouth for shooting tongue
+                        ctx.fillStyle = '#FF3355';
                         ctx.beginPath();
-                        ctx.ellipse(this.x, this.y + this.height * 0.1, this.width / 4, this.height / 8, 0, 0, Math.PI * 2);
+                        ctx.arc(this.x, this.y + this.height * 0.15, this.width / 6, 0, Math.PI);
                         ctx.fill();
                         
-                        // Draw mouth outline
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 2;
                         ctx.beginPath();
-                        ctx.ellipse(this.x, this.y + this.height * 0.1, this.width / 4, this.height / 8, 0, 0, Math.PI * 2);
+                        ctx.arc(this.x, this.y + this.height * 0.15, this.width / 6, 0, Math.PI);
                         ctx.stroke();
                     } else {
-                        // Draw closed mouth (simple curved line)
+                        // Show smile
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 3;
                         ctx.beginPath();
-                        ctx.arc(this.x, this.y + this.height * 0.1, this.width / 4, 0, Math.PI);
+                        ctx.arc(this.x, this.y + this.height * 0.1, this.width / 4, 0.1, Math.PI - 0.1);
                         ctx.stroke();
                     }
+                    
+                    // Draw nostrils (small dark green dots)
+                    ctx.fillStyle = '#2E7D32';
+                    ctx.beginPath();
+                    ctx.arc(this.x - this.width * 0.1, this.y, this.width * 0.03, 0, Math.PI * 2);
+                    ctx.arc(this.x + this.width * 0.1, this.y, this.width * 0.03, 0, Math.PI * 2);
+                    ctx.fill();
                     
                     // Draw tongue if extended
                     if (this.tongueExtended) {
@@ -612,80 +610,61 @@
                     ctx.restore();
                 };
                 
-                this.drawFrontLegs = function() {
-                    const legWidth = this.width * 0.15;
-                    const legHeight = this.height * 0.4;
-                    const legOffsetX = this.width * 0.55; // Increased from 0.35 to extend legs further
-                    const legOffsetY = this.height * 0.1;
-                    
+                // Simplified legs drawing function
+                this.drawLegs = function() {
                     ctx.fillStyle = this.legColor;
                     
-                    // Left front leg with slight animation
-                    const leftLegAngle = Math.sin(this.legAngle) * 0.1;
-                    ctx.save();
-                    ctx.translate(this.x - legOffsetX, this.y + legOffsetY);
-                    ctx.rotate(leftLegAngle);
-                    ctx.beginPath();
-                    ctx.ellipse(0, legHeight * 0.4, legWidth * 0.6, legHeight * 0.6, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.ellipse(-legWidth * 0.4, legHeight * 0.7, legWidth * 0.3, legHeight * 0.3, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                    
-                    // Right front leg with opposite animation
-                    const rightLegAngle = Math.sin(this.legAngle + Math.PI) * 0.1;
-                    ctx.save();
-                    ctx.translate(this.x + legOffsetX, this.y + legOffsetY);
-                    ctx.rotate(rightLegAngle);
-                    ctx.beginPath();
-                    ctx.ellipse(0, legHeight * 0.4, legWidth * 0.6, legHeight * 0.6, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.ellipse(legWidth * 0.4, legHeight * 0.7, legWidth * 0.3, legHeight * 0.3, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                };
-                
-                this.drawBackLegs = function() {
-                    const legWidth = this.width * 0.22; // Slightly wider legs
-                    const legHeight = this.height * 0.6; // Made back legs longer to match taller frog
-                    const legOffsetX = this.width * 0.55; // Increased from 0.3 to extend legs further
-                    const legOffsetY = this.height * 0.15;
-                    
-                    ctx.fillStyle = this.legColor;
-                    
+                    // Draw back legs (simplified oval shapes)
                     // Left back leg
-                    ctx.save();
-                    ctx.translate(this.x - legOffsetX, this.y + legOffsetY);
-                    ctx.rotate(Math.sin(this.legAngle) * 0.05 - 0.3); // Increased rotation angle
                     ctx.beginPath();
-                    ctx.ellipse(-legWidth * 0.2, legHeight * 0.4, legWidth, legHeight * 0.6, 0, 0, Math.PI * 2);
+                    ctx.ellipse(
+                        this.x - this.width * 0.6, 
+                        this.y + this.height * 0.3, 
+                        this.width * 0.25, 
+                        this.height * 0.35, 
+                        -0.3, 0, Math.PI * 2
+                    );
                     ctx.fill();
-                    // Foot
-                    ctx.beginPath();
-                    ctx.ellipse(-legWidth * 0.5, legHeight * 0.8, legWidth * 0.9, legHeight * 0.25, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
                     
                     // Right back leg
-                    ctx.save();
-                    ctx.translate(this.x + legOffsetX, this.y + legOffsetY);
-                    ctx.rotate(Math.sin(this.legAngle + Math.PI) * 0.05 + 0.3); // Increased rotation angle
                     ctx.beginPath();
-                    ctx.ellipse(legWidth * 0.2, legHeight * 0.4, legWidth, legHeight * 0.6, 0, 0, Math.PI * 2);
+                    ctx.ellipse(
+                        this.x + this.width * 0.6, 
+                        this.y + this.height * 0.3, 
+                        this.width * 0.25, 
+                        this.height * 0.35, 
+                        0.3, 0, Math.PI * 2
+                    );
                     ctx.fill();
-                    // Foot
+                    
+                    // Draw front feet (small ovals)
+                    // Left front foot
                     ctx.beginPath();
-                    ctx.ellipse(legWidth * 0.5, legHeight * 0.8, legWidth * 0.9, legHeight * 0.25, 0, 0, Math.PI * 2);
+                    ctx.ellipse(
+                        this.x - this.width * 0.4, 
+                        this.y + this.height * 0.35, 
+                        this.width * 0.15, 
+                        this.height * 0.1, 
+                        0, 0, Math.PI * 2
+                    );
                     ctx.fill();
-                    ctx.restore();
+                    
+                    // Right front foot
+                    ctx.beginPath();
+                    ctx.ellipse(
+                        this.x + this.width * 0.4, 
+                        this.y + this.height * 0.35, 
+                        this.width * 0.15, 
+                        this.height * 0.1, 
+                        0, 0, Math.PI * 2
+                    );
+                    ctx.fill();
                 };
                 
                 this.drawTongue = function() {
-                    // Get the mouth position (the tongue should come from the mouth)
+                    // Get the mouth position
                     const mouthX = this.x;
-                    const mouthY = this.y + this.height * 0.1; // Adjusted mouth position
+                    const mouthY = this.y + this.height * 0.15;
                     
                     // Calculate the end position of the tongue
                     const endX = mouthX + Math.cos(this.tongueAngle) * this.tongueLength;
@@ -722,7 +701,7 @@
                 this.checkTongueCollision = function() {
                     // Get the mouth position
                     const mouthX = this.x;
-                    const mouthY = this.y + this.height * 0.1; // Adjusted mouth position
+                    const mouthY = this.y + this.height * 0.15;
                     
                     // Get tongue tip position
                     const tipX = mouthX + Math.cos(this.tongueAngle) * this.tongueLength;
